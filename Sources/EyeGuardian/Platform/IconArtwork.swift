@@ -380,4 +380,33 @@ enum IconArtwork {
         guard let image = context.makeImage() else { return nil }
         return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
+
+    /// Renders the artwork into a bitmap-backed image of `points` × `scale` pixels.
+    ///
+    /// A `NSImage(size:flipped:drawingHandler:)` is captured by AppKit as an
+    /// `NSCGImageSnapshotRep` on first draw — 8 MB per icon at 1024 px — and stays
+    /// alive as long as the image does. A ready bitmap has no snapshot cost.
+    static func image(points: CGFloat, scale: CGFloat, look: Look) -> NSImage {
+        let side = max(1, points)
+        let pixels = max(1, Int((side * scale).rounded()))
+        let space = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: nil, width: pixels, height: pixels,
+                                      bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            return NSImage(size: NSSize(width: side, height: side))
+        }
+        context.scaleBy(x: scale, y: scale)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+        draw(in: NSRect(x: 0, y: 0, width: side, height: side), look: look)
+        NSGraphicsContext.restoreGraphicsState()
+        guard let cgImage = context.makeImage() else {
+            return NSImage(size: NSSize(width: side, height: side))
+        }
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        rep.size = NSSize(width: side, height: side)
+        let image = NSImage(size: NSSize(width: side, height: side))
+        image.addRepresentation(rep)
+        return image
+    }
 }

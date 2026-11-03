@@ -367,6 +367,7 @@ final class AppModel: ObservableObject {
     }
 
     private func updateDockIcon(force: Bool = false) {
+        guard settings.showDockIcon else { return }
         let percent = engine.percent
         guard force || percent != lastDockPercent else { return }
         lastDockPercent = percent

@@ -12,6 +12,10 @@ enum StatusBarIconRenderer {
     }
 
     private static var cache: [Key: NSImage] = [:]
+    private static var order: [Key] = []
+    /// Covers the Settings thumbnails (2 styles × 2 palettes × 3 thicknesses) plus a
+    /// live preview. Evicted entries redraw on demand — a 52 px render is cheap.
+    private static let cacheLimit = 32
 
     static func image(fatigue: Int, points: Int, style: RingStyle,
                       palette: RingPalette, thickness: RingThickness,
@@ -24,6 +28,10 @@ enum StatusBarIconRenderer {
         }
         let image = render(percent, key: key)
         cache[key] = image
+        order.append(key)
+        if order.count > cacheLimit {
+            cache[order.removeFirst()] = nil
+        }
         return image
     }
 
@@ -38,11 +46,7 @@ enum StatusBarIconRenderer {
             dark: key.dark,
             surface: .menuBar
         )
-        let image = NSImage(size: NSSize(width: side, height: side),
-                            flipped: false) { rect in
-            IconArtwork.draw(in: rect, look: look)
-            return true
-        }
+        let image = IconArtwork.image(points: side, scale: 2, look: look)
         image.isTemplate = key.template && key.palette == .monochrome
         return image
     }
