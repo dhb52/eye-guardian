@@ -43,6 +43,10 @@
 "PermissionNotUsedHint" = "Turn on the matching option in Accuracy to use this permission.";
 "OpenSettingsForAccessibility" = "Open Accessibility Settings";
 "OpenSettingsForScreenRecording" = "Open Screen Recording Settings";
+"PermissionGuideHintPrefix" = "Drag the icon on the left into the ";
+"PermissionGuideHintSuffix" = " list above";
+"PermissionGuideCompletion" = "Release to grant access—no need to toggle the switch";
+"PermissionGuideDragTitle" = "Drag me to the permission list above";
 "AllowNotifications" = "Allow Notifications";
 "OpenNotificationSettings" = "Open Notification Settings";
 "PermissionRestartHint" = "If Eye Guardian is on in System Settings but still shows as off here, turn it off and on again, or restart Eye Guardian.";

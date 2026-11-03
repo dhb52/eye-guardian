@@ -43,6 +43,10 @@
 "PermissionNotUsedHint" = "在「准确性」中开启对应选项后才会使用此权限。";
 "OpenSettingsForAccessibility" = "打开辅助功能设置";
 "OpenSettingsForScreenRecording" = "打开屏幕录制设置";
+"PermissionGuideHintPrefix" = "把左边的图标拖进上方的";
+"PermissionGuideHintSuffix" = "列表";
+"PermissionGuideCompletion" = "松手即完成授权，无需再点开关";
+"PermissionGuideDragTitle" = "拖动我到上面的权限列表";
 "AllowNotifications" = "允许通知";
 "OpenNotificationSettings" = "打开通知设置";
 "PermissionRestartHint" = "若系统设置中已开启但这里仍显示未开启，请先关闭再重新开启该权限，或重新启动 Eye Guardian。";
