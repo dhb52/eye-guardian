@@ -12,6 +12,7 @@ No Xcode required; only the Command Line Tools.
 make          # compile both architectures, assemble and ad-hoc sign the app
 make test     # build and run the core unit tests
 make run      # build and open the app
+make dmg      # build and package a drag-to-Applications disk image
 make clean
 ```
 
@@ -43,3 +44,4 @@ The settings window has eight sections: General, Status Bar, Reminders, Detectio
 - `Sources/EyeGuardian/Platform` — event monitoring, permissions, status bar, Dock icon, windows.
 - `Sources/EyeGuardian/UI` — SwiftUI views.
 - `scripts/build.sh` — universal compile, bundle assembly, ad-hoc signing.
+- `scripts/make-dmg.sh` — package the built app into a UDZO disk image with an `/Applications` symlink.
