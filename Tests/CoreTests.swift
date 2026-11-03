@@ -53,7 +53,15 @@ enum CoreTestsMain {
         runner.check("unknown icon size string falls back to 18",
                      decode("{\"statusIconSize\":\"weird\"}")?.statusIconSize == 18)
         runner.check("missing icon size keeps the default",
-                     decode("{}")?.statusIconSize == 18)
+                     decode("{}")?.statusIconSize == 24)
+        runner.check("default settings hide the dock icon",
+                     decode("{}")?.showDockIcon == false)
+        runner.check("default settings hide the fatigue percent",
+                     decode("{}")?.statusShowFatiguePercent == false)
+        runner.check("default settings use the monochrome ring",
+                     decode("{}")?.ringPalette == .monochrome)
+        runner.check("default settings enable movie mode",
+                     decode("{}")?.movieMode == true)
         runner.check("language decodes from storage",
                      decode("{\"language\":\"chinese\"}")?.language == .chinese)
         runner.check("missing language follows the system",
