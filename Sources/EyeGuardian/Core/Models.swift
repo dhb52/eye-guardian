@@ -160,17 +160,17 @@ enum RingThickness: String, Codable, CaseIterable, Identifiable {
 
     var dotDiameter: Double {
         switch self {
-        case .thin: return 32
-        case .regular: return 41
-        case .thick: return 50
+        case .thin: return 64
+        case .regular: return 82
+        case .thick: return 100
         }
     }
 
     var dotCount: Int {
         switch self {
-        case .thin: return 26
-        case .regular: return 22
-        case .thick: return 18
+        case .thin: return 13
+        case .regular: return 11
+        case .thick: return 9
         }
     }
 }
