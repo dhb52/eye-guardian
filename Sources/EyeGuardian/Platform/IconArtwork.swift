@@ -39,10 +39,12 @@ enum IconArtwork {
     static let glyphScale: CGFloat = 0.9
     static let center = NSPoint(x: 512, y: 512)
     static let ringRadius: CGFloat = 300
-    /// Visible break at 12 o'clock, in degrees — measured from the reference icon
-    /// (arc tips at ±35.8° off vertical). Round caps and dot bodies eat into their
-    /// path, so each shape widens the break by its own angular half-width.
-    static let ringGapDegrees: CGFloat = 70
+    /// Visible break at 12 o'clock, in degrees. Wide enough for the three-digit
+    /// label at `gapNumberSize` to clear the arc tips and dot bodies with the same
+    /// margin "88" had at 70°, so every value draws at one size. Round caps and dot
+    /// bodies eat into their path, so each shape widens the break by its own
+    /// angular half-width.
+    static let ringGapDegrees: CGFloat = 92
     static let compactRingRadius: CGFloat = 320
     static let compactRingWidth: CGFloat = 96
     /// Below this width the dot ring collapses into an unreadable smudge.
@@ -186,7 +188,7 @@ enum IconArtwork {
 
         if !look.compact && rect.width >= numberDetailWidth {
             let numberColor = look.palette == .spectrum && look.dark ? fill : tint.ink
-            drawGapNumber(fatigue, size: plateNumberSize, color: numberColor)
+            drawGapNumber(fatigue, color: numberColor)
         }
         context.restoreGraphicsState()
     }
@@ -214,7 +216,7 @@ enum IconArtwork {
                     fatigue: fatigue, fill: fill, track: track)
         }
         drawMenuBarEye(center: center, eye: detailedEye, fatigue: fatigue, ink: ink)
-        drawGapNumber(fatigue, size: menuBarNumberSize, color: fill)
+        drawGapNumber(fatigue, color: fill)
         context.restoreGraphicsState()
     }
 
@@ -346,17 +348,13 @@ enum IconArtwork {
         return path
     }
 
-    /// Fixed label sizes. Both are sized so the widest label ("100") fits the
-    /// 70° gap's chord, which keeps one size at every value.
-    private static let plateNumberSize: CGFloat = 170
-    private static let menuBarNumberSize: CGFloat = 170
+    /// One label size for every value, so 88% and 100% draw identically.
+    private static let gapNumberSize: CGFloat = 224
 
-    /// Size comes from the call site: plates and the menu bar glyph use their own
-    /// fixed labels instead of scaling by value, so 80% and 100% draw at one size.
-    private static func drawGapNumber(_ fatigue: CGFloat, size: CGFloat, color: NSColor) {
+    private static func drawGapNumber(_ fatigue: CGFloat, color: NSColor) {
         let text = NSString(string: "\(Int((fatigue * 100).rounded()))")
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .bold),
+            .font: NSFont.monospacedDigitSystemFont(ofSize: gapNumberSize, weight: .bold),
             .foregroundColor: color,
             .kern: -2,
         ]
