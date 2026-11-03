@@ -100,8 +100,10 @@ enum IconArtwork {
          NSColor.black.withAlphaComponent(0.06))
     }
 
-    /// Green → amber → red, interpolated in HSB so the mid range stays vivid
-    /// instead of turning olive the way an sRGB blend does around 35%.
+    /// Green → amber → brand orange, interpolated in HSB so the mid range stays
+    /// vivid instead of turning olive the way an sRGB blend does around 35%.
+    /// The endpoints are chosen for the off-white plate: a deep green at 0% and
+    /// the "Start a break now" fill (`Theme.accentDeep`, #A8540B) at 100%.
     static func spectrum(_ value: CGFloat) -> NSColor {
         let t = min(max(value, 0), 1)
         let hue: CGFloat
@@ -110,23 +112,15 @@ enum IconArtwork {
         if t < 0.5 {
             let k = t / 0.5
             hue = 142 + (38 - 142) * k
-            saturation = 0.72 + (0.92 - 0.72) * k
-            brightness = 0.78 + (1 - 0.78) * k
+            saturation = 0.80 + (0.92 - 0.80) * k
+            brightness = 0.60 + (0.82 - 0.60) * k
         } else {
             let k = (t - 0.5) / 0.5
-            hue = 38 + (4 - 38) * k
-            saturation = 0.92
-            brightness = 1
+            hue = 38 + (27.9 - 38) * k
+            saturation = 0.92 + (0.9345 - 0.92) * k
+            brightness = 0.82 + (0.6588 - 0.82) * k
         }
         return hsb(hue: hue, saturation: saturation, brightness: brightness)
-    }
-
-    /// Spectrum on a light plate is darkened so the arc still reads as a shape,
-    /// and the number switches to ink because a lime number on off-white does not.
-    private static func darkened(_ color: NSColor, by factor: CGFloat) -> NSColor {
-        let c = color.usingColorSpace(.sRGB) ?? color
-        return NSColor(srgbRed: c.redComponent * factor, green: c.greenComponent * factor,
-                       blue: c.blueComponent * factor, alpha: 1)
     }
 
     private static func hsb(hue: CGFloat, saturation: CGFloat, brightness: CGFloat) -> NSColor {
@@ -164,10 +158,7 @@ enum IconArtwork {
         let tint = look.plate == .white ? whiteTone() : tone(dark: look.dark)
         drawPlate(tint: tint)
 
-        var fill = look.palette == .spectrum ? spectrum(fatigue) : tint.ink
-        if look.palette == .spectrum && !look.dark {
-            fill = darkened(fill, by: 0.8)
-        }
+        let fill = look.palette == .spectrum ? spectrum(fatigue) : tint.ink
         let track = tint.ink.withAlphaComponent(look.palette == .spectrum ? 0.12 : 0.16)
 
         // Optically match the system grid: the glyph sits inside the plate, not on its edge.
