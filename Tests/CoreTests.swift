@@ -30,7 +30,65 @@ enum CoreTestsMain {
         testScheduler(runner)
         testEventStore(runner)
         testPermissionGuideLayout(runner)
+        testSettingsMigration(runner)
+        testStatusPresentation(runner)
         runner.finish()
+    }
+
+    private static func testSettingsMigration(_ runner: TestRunner) {
+        func decode(_ json: String) -> AppSettings? {
+            guard let data = json.data(using: .utf8) else { return nil }
+            return try? JSONDecoder().decode(AppSettings.self, from: data)
+        }
+
+        runner.check("legacy large icon size maps to 22 points",
+                     decode("{\"statusIconSize\":\"large\"}")?.statusIconSize == 22)
+        runner.check("legacy small icon size maps to 14 points",
+                     decode("{\"statusIconSize\":\"small\"}")?.statusIconSize == 14)
+        runner.check("numeric icon size is clamped",
+                     decode("{\"statusIconSize\":99}")?.effectiveStatusIconSize == 22)
+        runner.check("numeric icon size below range is clamped",
+                     decode("{\"statusIconSize\":2}")?.effectiveStatusIconSize == 14)
+        runner.check("unknown icon size string falls back to 18",
+                     decode("{\"statusIconSize\":\"weird\"}")?.statusIconSize == 18)
+        runner.check("missing icon size keeps the default",
+                     decode("{}")?.statusIconSize == 18)
+        runner.check("language decodes from storage",
+                     decode("{\"language\":\"chinese\"}")?.language == .chinese)
+        runner.check("missing language follows the system",
+                     decode("{}")?.language == .system)
+        runner.check("unknown language follows the system",
+                     decode("{\"language\":\"klingon\"}")?.language == .system)
+    }
+
+    private static func testStatusPresentation(_ runner: TestRunner) {
+        var settings = AppSettings()
+
+        settings.statusPlacement = .dock
+        runner.check("dock placement hides the menu bar icon",
+                     settings.showDockIcon && !settings.showStatusBarIcon)
+        runner.check("dock placement round-trips", settings.statusPlacement == .dock)
+
+        settings.statusPlacement = .menuBar
+        runner.check("menu bar placement hides the dock icon",
+                     !settings.showDockIcon && settings.showStatusBarIcon)
+        runner.check("menu bar placement round-trips", settings.statusPlacement == .menuBar)
+
+        settings.statusPlacement = .both
+        runner.check("both placement shows both icons",
+                     settings.showDockIcon && settings.showStatusBarIcon)
+        runner.check("both placement round-trips", settings.statusPlacement == .both)
+
+        settings.statusScreenTimeStyle = .hours
+        runner.check("hours style enables only hours",
+                     settings.statusShowScreenTimeHours && !settings.statusShowScreenTimeMinutes)
+        settings.statusScreenTimeStyle = .minutes
+        runner.check("minutes style enables only minutes",
+                     !settings.statusShowScreenTimeHours && settings.statusShowScreenTimeMinutes)
+        settings.statusScreenTimeStyle = .off
+        runner.check("off style disables both screen time readouts",
+                     !settings.statusShowScreenTimeHours && !settings.statusShowScreenTimeMinutes)
+        runner.check("off style round-trips", settings.statusScreenTimeStyle == .off)
     }
 
     private static func testPermissionGuideLayout(_ runner: TestRunner) {

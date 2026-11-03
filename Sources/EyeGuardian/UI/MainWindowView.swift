@@ -110,6 +110,7 @@ private struct SidebarView: View {
 }
 
 struct HelpView: View {
+    @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {

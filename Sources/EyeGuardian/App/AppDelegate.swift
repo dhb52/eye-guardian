@@ -2,14 +2,29 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var languageObserver: NSObjectProtocol?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let model = AppModel.shared
         buildMainMenu()
-        AppModel.shared.start()
-        AppModel.shared.showMainWindow()
+        languageObserver = NotificationCenter.default.addObserver(
+            forName: .eyeGuardianLanguageDidChange,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.buildMainMenu()
+            }
+        }
+        model.start()
+        model.showMainWindow()
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        if let languageObserver {
+            NotificationCenter.default.removeObserver(languageObserver)
+            self.languageObserver = nil
+        }
         AppModel.shared.stop()
     }
 

@@ -31,6 +31,14 @@ enum PermissionKind: String {
         }
     }
 
+    var tint: Color {
+        switch self {
+        case .accessibility: return .blue
+        case .screenRecording: return .purple
+        case .notifications: return .orange
+        }
+    }
+
     var settingsURLString: String {
         switch self {
         case .accessibility:
@@ -91,8 +99,9 @@ struct PermissionList: View {
     var showsSatisfied = true
 
     var body: some View {
-        ForEach(statuses) { status in
-            PermissionRow(status: status)
+        let rows = statuses
+        ForEach(Array(rows.enumerated()), id: \.element.id) { index, status in
+            PermissionRow(status: status, showsDivider: index < rows.count - 1)
         }
     }
 
@@ -105,44 +114,51 @@ struct PermissionList: View {
 
 struct PermissionRow: View {
     let status: PermissionStatus
+    var showsDivider = false
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: status.kind.systemImage)
-                .frame(width: 22)
-                .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 14) {
+                SettingsIconTile(icon: status.kind.systemImage, tint: status.kind.tint)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(L10n.t(status.kind.titleKey))
-                        .font(.callout.weight(.medium))
-                    Label(L10n.t(status.state.labelKey), systemImage: stateIcon)
-                        .font(.caption)
-                        .foregroundStyle(stateColor)
-                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(L10n.t(status.kind.titleKey))
+                            .font(.system(size: 13, weight: .medium))
+                        Label(L10n.t(status.state.labelKey), systemImage: stateIcon)
+                            .font(.caption)
+                            .foregroundStyle(stateColor)
+                    }
 
-                Text(L10n.t(status.kind.reasonKey))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if status.state == .notRequired {
-                    Text(L10n.t("PermissionNotUsedHint"))
-                        .font(.caption2)
+                    Text(L10n.t(status.kind.reasonKey))
+                        .font(.system(size: 11.5))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    if status.state == .notRequired {
+                        Text(L10n.t("PermissionNotUsedHint"))
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 12)
+
+                if let key = status.kind.actionTitleKey(for: status.state) {
+                    Button(L10n.t(key)) { activate() }
+                        .buttonStyle(.bordered)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(minHeight: 56)
 
-            Spacer(minLength: 8)
-
-            if let key = status.kind.actionTitleKey(for: status.state) {
-                Button(L10n.t(key)) { activate() }
-                    .buttonStyle(.bordered)
+            if showsDivider {
+                SettingsDivider()
             }
         }
-        .padding(.vertical, 2)
     }
 
     private var stateIcon: String {
@@ -185,7 +201,8 @@ struct PermissionFooter: View {
             Button(L10n.t("RestartApp")) { model.relaunch() }
                 .buttonStyle(.bordered)
         }
-        .padding(.top, 4)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 

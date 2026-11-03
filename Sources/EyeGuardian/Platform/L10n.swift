@@ -1,12 +1,33 @@
 import Foundation
 
+extension Notification.Name {
+    static let eyeGuardianLanguageDidChange = Notification.Name("EyeGuardianLanguageDidChange")
+}
+
 enum L10n {
+    private static var overrideBundle: Bundle?
+    private(set) static var appliedLanguage: AppLanguage = .system
+
+    @discardableResult
+    static func apply(_ language: AppLanguage) -> Bool {
+        guard language != appliedLanguage else { return false }
+        appliedLanguage = language
+        overrideBundle = language.bundleName.flatMap { name in
+            Bundle.main.path(forResource: name, ofType: "lproj").flatMap(Bundle.init(path:))
+        }
+        return true
+    }
+
     static func t(_ key: String) -> String {
-        NSLocalizedString(key, comment: "")
+        if let bundle = overrideBundle {
+            let value = bundle.localizedString(forKey: key, value: nil, table: nil)
+            if value != key { return value }
+        }
+        return NSLocalizedString(key, comment: "")
     }
 
     static func f(_ key: String, _ arguments: CVarArg...) -> String {
-        String(format: NSLocalizedString(key, comment: ""), arguments: arguments)
+        String(format: t(key), arguments: arguments)
     }
 }
 

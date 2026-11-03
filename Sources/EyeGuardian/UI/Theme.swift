@@ -5,6 +5,9 @@ enum Theme {
     static let accentDeep = Color(red: 0.659, green: 0.329, blue: 0.043)
     static let cardCorner: CGFloat = 14
     static let sidebarWidth: CGFloat = 220
+    static let selection = Color(nsColor: .controlAccentColor)
+    static let settingsSidebarWidth: CGFloat = 216
+    static let settingsCardCorner: CGFloat = 12
 
     static var accentGradient: LinearGradient {
         LinearGradient(colors: [accent, Color(red: 1.0, green: 0.769, blue: 0.420)],

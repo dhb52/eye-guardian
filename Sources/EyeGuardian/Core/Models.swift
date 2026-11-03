@@ -175,18 +175,58 @@ enum RingThickness: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum StatusIconSize: String, Codable, CaseIterable, Identifiable {
-    case small
-    case medium
-    case large
+enum AppLanguage: String, Codable, CaseIterable, Identifiable {
+    case system
+    case english
+    case chinese
 
     var id: String { rawValue }
 
-    var points: Double {
+    var bundleName: String? {
         switch self {
-        case .small: return 14
-        case .medium: return 18
-        case .large: return 22
+        case .system: return nil
+        case .english: return "en"
+        case .chinese: return "zh-Hans"
+        }
+    }
+
+    var titleKey: String {
+        switch self {
+        case .system: return "LanguageSystem"
+        case .english: return "LanguageEnglish"
+        case .chinese: return "LanguageChinese"
+        }
+    }
+}
+
+enum StatusPlacement: String, CaseIterable, Identifiable {
+    case menuBar
+    case dock
+    case both
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .menuBar: return "StatusPlacementMenuBar"
+        case .dock: return "StatusPlacementDock"
+        case .both: return "StatusPlacementBoth"
+        }
+    }
+}
+
+enum StatusScreenTimeStyle: String, CaseIterable, Identifiable {
+    case off
+    case hours
+    case minutes
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .off: return "ScreenTimeOff"
+        case .hours: return "ScreenTimeStyleHours"
+        case .minutes: return "ScreenTimeStyleMinutes"
         }
     }
 }

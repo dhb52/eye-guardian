@@ -28,7 +28,8 @@ struct AppSettings: Codable, Equatable {
     var ringStyle: RingStyle = .solid
     var ringPalette: RingPalette = .spectrum
     var ringThickness: RingThickness = .regular
-    var statusIconSize: StatusIconSize = .medium
+    var statusIconSize: Int = 18
+    var language: AppLanguage = .system
     var launchAtLogin: Bool = false
     var usageMode: UsageMode = .smart
     var detectMouse: Bool = true
@@ -47,6 +48,40 @@ struct AppSettings: Codable, Equatable {
     var effectiveDetectMouse: Bool { detectionActive && detectMouse }
     var effectiveDetectKeyboard: Bool { detectionActive && detectKeyboard }
     var effectiveDetectScreenChanges: Bool { detectionActive && detectScreenChanges }
+    var effectiveStatusIconSize: Int { clampValue(statusIconSize, 14, 22) }
+
+    var statusPlacement: StatusPlacement {
+        get {
+            if showDockIcon && showStatusBarIcon { return .both }
+            if showDockIcon { return .dock }
+            return .menuBar
+        }
+        set {
+            switch newValue {
+            case .menuBar:
+                showDockIcon = false
+                showStatusBarIcon = true
+            case .dock:
+                showDockIcon = true
+                showStatusBarIcon = false
+            case .both:
+                showDockIcon = true
+                showStatusBarIcon = true
+            }
+        }
+    }
+
+    var statusScreenTimeStyle: StatusScreenTimeStyle {
+        get {
+            if statusShowScreenTimeMinutes { return .minutes }
+            if statusShowScreenTimeHours { return .hours }
+            return .off
+        }
+        set {
+            statusShowScreenTimeHours = newValue == .hours
+            statusShowScreenTimeMinutes = newValue == .minutes
+        }
+    }
 
     static let `default` = AppSettings()
 
@@ -57,7 +92,7 @@ struct AppSettings: Codable, Equatable {
         case preReminderNotification, playSoundAtBreakEnd, skipMode
         case showSkipButton, showDockIcon, showStatusBarIcon, statusShowFatiguePercent
         case statusShowScreenTimeHours, statusShowScreenTimeMinutes, statusShowReminderCount
-        case ringStyle, ringPalette, ringThickness, statusIconSize
+        case ringStyle, ringPalette, ringThickness, statusIconSize, language
         case launchAtLogin, usageMode, detectMouse, detectKeyboard, detectScreenChanges
         case movieMode, extraReminderEnabled, extraReminderHours, popupBackground
         case popupImagePath, popupText, showScreenTimeOnPopup, rules
@@ -83,7 +118,8 @@ struct AppSettings: Codable, Equatable {
         ringStyle = (try? c.decodeIfPresent(RingStyle.self, forKey: .ringStyle)) ?? d.ringStyle
         ringPalette = (try? c.decodeIfPresent(RingPalette.self, forKey: .ringPalette)) ?? d.ringPalette
         ringThickness = (try? c.decodeIfPresent(RingThickness.self, forKey: .ringThickness)) ?? d.ringThickness
-        statusIconSize = (try? c.decodeIfPresent(StatusIconSize.self, forKey: .statusIconSize)) ?? d.statusIconSize
+        statusIconSize = AppSettings.decodeStatusIconSize(from: c) ?? d.statusIconSize
+        language = (try? c.decodeIfPresent(AppLanguage.self, forKey: .language)) ?? d.language
         launchAtLogin = (try? c.decodeIfPresent(Bool.self, forKey: .launchAtLogin)) ?? d.launchAtLogin
         usageMode = (try? c.decodeIfPresent(UsageMode.self, forKey: .usageMode)) ?? d.usageMode
         detectMouse = (try? c.decodeIfPresent(Bool.self, forKey: .detectMouse)) ?? d.detectMouse
@@ -97,6 +133,22 @@ struct AppSettings: Codable, Equatable {
         popupText = (try? c.decodeIfPresent(String.self, forKey: .popupText)) ?? d.popupText
         showScreenTimeOnPopup = (try? c.decodeIfPresent(Bool.self, forKey: .showScreenTimeOnPopup)) ?? d.showScreenTimeOnPopup
         rules = (try? c.decodeIfPresent([BreakRule].self, forKey: .rules)) ?? d.rules
+    }
+
+    private static func decodeStatusIconSize(
+        from container: KeyedDecodingContainer<CodingKeys>
+    ) -> Int? {
+        if let points = try? container.decodeIfPresent(Int.self, forKey: .statusIconSize) {
+            return clampValue(points, 14, 22)
+        }
+        guard let legacy = try? container.decodeIfPresent(String.self, forKey: .statusIconSize) else {
+            return nil
+        }
+        switch legacy {
+        case "small": return 14
+        case "large": return 22
+        default: return 18
+        }
     }
 
     func effective() -> EffectiveSettings {

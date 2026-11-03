@@ -103,9 +103,9 @@ struct SidebarRow: View {
             .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Theme.accent.opacity(0.15) : Color.clear)
+                    .fill(isSelected ? Theme.selection.opacity(0.15) : Color.clear)
             )
-            .foregroundStyle(isSelected ? Theme.accentDeep : Color.primary)
+            .foregroundStyle(isSelected ? Theme.selection : Color.primary)
         }
         .buttonStyle(.plain)
     }

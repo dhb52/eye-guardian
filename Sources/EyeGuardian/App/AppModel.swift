@@ -112,6 +112,7 @@ final class AppModel: ObservableObject {
             isSnoozed = until > Date()
             scheduler.snooze(until: until)
         }
+        L10n.apply(settings.language)
     }
 
     var fatiguePercent: Int { Int(fatigue.rounded()) }
@@ -333,6 +334,9 @@ final class AppModel: ObservableObject {
     }
 
     private func applySettings() {
+        if L10n.apply(settings.language) {
+            NotificationCenter.default.post(name: .eyeGuardianLanguageDidChange, object: nil)
+        }
         if settings.effectiveDetectKeyboard && !lastKeyboardDetectionActive
             && !UsageDetector.isAccessibilityTrusted {
             openPermissionSettings(.accessibility)
