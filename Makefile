@@ -1,4 +1,4 @@
-.PHONY: all build bundle test run icon clean
+.PHONY: all build bundle dmg test run icon clean
 
 all: bundle
 
@@ -9,6 +9,9 @@ build: icon
 	./scripts/build.sh
 
 bundle: build
+
+dmg: bundle
+	./scripts/make-dmg.sh
 
 test:
 	./scripts/test.sh
