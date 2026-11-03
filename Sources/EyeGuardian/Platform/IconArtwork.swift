@@ -8,6 +8,11 @@ enum IconArtwork {
         case menuBar
     }
 
+    enum PlateStyle {
+        case automatic
+        case white
+    }
+
     struct Look {
         var fatigue: CGFloat
         var compact: Bool = false
@@ -16,6 +21,7 @@ enum IconArtwork {
         var thickness: RingThickness = .regular
         var dark: Bool = true
         var surface: Surface = .appIcon
+        var plate: PlateStyle = .automatic
     }
 
     private struct Tone {
@@ -85,6 +91,15 @@ enum IconArtwork {
                 NSColor.black.withAlphaComponent(0.06))
     }
 
+    /// Pure white plate: the pupil matches the plate so the eye reads as a cut-out.
+    static func whiteTone() -> (plateTop: NSColor, plateBottom: NSColor,
+                                ink: NSColor, pupil: NSColor, rim: NSColor) {
+        (NSColor.white, NSColor.white,
+         NSColor(srgbRed: 0.106, green: 0.102, blue: 0.098, alpha: 1),
+         NSColor.white,
+         NSColor.black.withAlphaComponent(0.06))
+    }
+
     /// Green → amber → red, interpolated in HSB so the mid range stays vivid
     /// instead of turning olive the way an sRGB blend does around 35%.
     static func spectrum(_ value: CGFloat) -> NSColor {
@@ -146,7 +161,7 @@ enum IconArtwork {
             drawMenuBarGlyph(fatigue: fatigue, look: look)
             return
         }
-        let tint = tone(dark: look.dark)
+        let tint = look.plate == .white ? whiteTone() : tone(dark: look.dark)
         drawPlate(tint: tint)
 
         var fill = look.palette == .spectrum ? spectrum(fatigue) : tint.ink

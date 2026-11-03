@@ -32,7 +32,8 @@ enum GenIcon {
                                             style: .solid,
                                             palette: .spectrum,
                                             thickness: .regular,
-                                            dark: true)
+                                            dark: false,
+                                            plate: .white)
                 guard let rendered = IconArtwork.png(pixels: entry.pixels, look: look) else {
                     FileHandle.standardError.write(Data("failed to render \(entry.pixels)px icon\n".utf8))
                     exit(1)
