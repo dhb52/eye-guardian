@@ -14,10 +14,6 @@ final class ScreenChangeDetector {
         CGPreflightScreenCaptureAccess()
     }
 
-    static func requestPermission() {
-        _ = CGRequestScreenCaptureAccess()
-    }
-
     func start(interval: TimeInterval = 5) {
         guard timer == nil else { return }
         guard Self.hasPermission else { return }

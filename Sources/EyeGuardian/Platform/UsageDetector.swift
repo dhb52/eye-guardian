@@ -32,12 +32,6 @@ final class UsageDetector {
         AXIsProcessTrusted()
     }
 
-    static func requestAccessibility() {
-        let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        let options = [promptKey: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-    }
-
     func start(mouse: Bool, keyboard: Bool) {
         stop()
 

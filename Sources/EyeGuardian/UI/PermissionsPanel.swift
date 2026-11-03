@@ -42,6 +42,10 @@ enum PermissionKind: String {
         }
     }
 
+    var supportsDragGuide: Bool {
+        self == .accessibility || self == .screenRecording
+    }
+
     func actionTitleKey(for state: PermissionState) -> String? {
         switch self {
         case .accessibility:
@@ -204,7 +208,12 @@ extension AppModel {
 
     func openPermissionSettings(_ kind: PermissionKind) {
         guard let url = URL(string: kind.settingsURLString) else { return }
-        NSWorkspace.shared.open(url)
+        if kind.supportsDragGuide {
+            permissionGuide.show(kind)
+        }
+        if !NSWorkspace.shared.open(url) {
+            permissionGuide.hide()
+        }
     }
 
     func relaunch() {

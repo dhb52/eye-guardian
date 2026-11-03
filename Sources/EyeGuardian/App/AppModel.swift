@@ -64,6 +64,7 @@ final class AppModel: ObservableObject {
     let systemState = SystemStateObserver()
     let usageDetector = UsageDetector()
     let screenDetector = ScreenChangeDetector()
+    let permissionGuide = PermissionGuideController()
 
     private let scheduler = BreakScheduler()
     private let reminderWindows = ReminderWindowController()
@@ -147,7 +148,10 @@ final class AppModel: ObservableObject {
             forName: NSApplication.didBecomeActiveNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.refreshPermissions() }
+            Task { @MainActor in
+                self?.permissionGuide.hide()
+                self?.refreshPermissions()
+            }
         }
         refreshPermissions()
 
@@ -184,6 +188,7 @@ final class AppModel: ObservableObject {
         systemState.stop()
         usageDetector.stop()
         screenDetector.stop()
+        permissionGuide.hide()
         reminderWindows.hide(restoreFocus: false)
         breakSession = nil
         if let token = napToken {
@@ -205,6 +210,10 @@ final class AppModel: ObservableObject {
         let elapsed = now.timeIntervalSince(lastTick)
         let dt = min(max(elapsed, 0), 2)
         lastTick = now
+
+        if permissionGuide.isVisible {
+            refreshPermissions()
+        }
 
         let effective = settings.effective()
         let timing = RuleResolver.effective(
@@ -316,13 +325,13 @@ final class AppModel: ObservableObject {
     private func applySettings() {
         if settings.detectKeyboard && !lastDetectKeyboard
             && !UsageDetector.isAccessibilityTrusted {
-            UsageDetector.requestAccessibility()
+            openPermissionSettings(.accessibility)
         }
         lastDetectKeyboard = settings.detectKeyboard
 
         if settings.detectScreenChanges && !lastDetectScreenChanges
             && !ScreenChangeDetector.hasPermission {
-            ScreenChangeDetector.requestPermission()
+            openPermissionSettings(.screenRecording)
         }
         lastDetectScreenChanges = settings.detectScreenChanges
 
@@ -396,6 +405,20 @@ final class AppModel: ObservableObject {
         }
 
         refreshNotificationAuthorization()
+
+        if let kind = permissionGuide.visibleKind, permissionGranted(kind) {
+            permissionGuide.hide()
+        }
+    }
+
+    private func permissionGranted(_ kind: PermissionKind) -> Bool {
+        switch kind {
+        case .accessibility: return accessibilityTrusted
+        case .screenRecording: return screenRecordingTrusted
+        case .notifications:
+            return notificationAuthorization == .authorized
+                || notificationAuthorization == .provisional
+        }
     }
 
     // MARK: - Actions
