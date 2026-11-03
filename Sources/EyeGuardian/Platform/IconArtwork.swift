@@ -186,7 +186,7 @@ enum IconArtwork {
 
         if !look.compact && rect.width >= numberDetailWidth {
             let numberColor = look.palette == .spectrum && look.dark ? fill : tint.ink
-            drawGapNumber(fatigue, color: numberColor)
+            drawGapNumber(fatigue, size: plateNumberSize, color: numberColor)
         }
         context.restoreGraphicsState()
     }
@@ -214,7 +214,7 @@ enum IconArtwork {
                     fatigue: fatigue, fill: fill, track: track)
         }
         drawMenuBarEye(center: center, eye: detailedEye, fatigue: fatigue, ink: ink)
-        drawGapNumber(fatigue, color: fill)
+        drawGapNumber(fatigue, size: menuBarNumberSize, color: fill)
         context.restoreGraphicsState()
     }
 
@@ -346,25 +346,23 @@ enum IconArtwork {
         return path
     }
 
-    /// Two digits nearly fill the gap; three digits shrink to stay clear of the arc tips.
-    private static let gapNumberSize: CGFloat = 224
+    /// Fixed label sizes. Both are sized so the widest label ("100") fits the
+    /// 70° gap's chord, which keeps one size at every value.
+    private static let plateNumberSize: CGFloat = 170
+    private static let menuBarNumberSize: CGFloat = 170
 
-    private static func drawGapNumber(_ fatigue: CGFloat, color: NSColor) {
+    /// Size comes from the call site: plates and the menu bar glyph use their own
+    /// fixed labels instead of scaling by value, so 80% and 100% draw at one size.
+    private static func drawGapNumber(_ fatigue: CGFloat, size: CGFloat, color: NSColor) {
         let text = NSString(string: "\(Int((fatigue * 100).rounded()))")
-        var attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: gapNumberSize, weight: .bold),
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: size, weight: .bold),
             .foregroundColor: color,
             .kern: -2,
         ]
-        var size = text.size(withAttributes: attributes)
-        let available = 2 * ringRadius * sin(ringGapDegrees / 2 * .pi / 180) * 0.95
-        if size.width > available {
-            attributes[.font] = NSFont.monospacedDigitSystemFont(ofSize: gapNumberSize * available / size.width,
-                                                                weight: .bold)
-            size = text.size(withAttributes: attributes)
-        }
-        text.draw(at: NSPoint(x: center.x - size.width / 2,
-                              y: center.y + ringRadius - size.height / 2),
+        let bounds = text.size(withAttributes: attributes)
+        text.draw(at: NSPoint(x: center.x - bounds.width / 2,
+                              y: center.y + ringRadius - bounds.height / 2),
                   withAttributes: attributes)
     }
 
