@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 private let utc: Calendar = {
@@ -27,7 +28,47 @@ enum CoreTestsMain {
         testEffectiveSettings(runner)
         testScheduler(runner)
         testEventStore(runner)
+        testPermissionGuideLayout(runner)
         runner.finish()
+    }
+
+    private static func testPermissionGuideLayout(_ runner: TestRunner) {
+        let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        let settings = CGRect(x: 400, y: 300, width: 600, height: 450)
+        let anchored = PermissionGuideLayout.frame(settingsWindow: settings, visibleFrame: screen)
+        runner.check("guide centers under settings window",
+                     abs(anchored.minX - 420) < 0.001 && abs(anchored.minY - 170) < 0.001)
+        runner.check("guide uses fixed panel size", anchored.width == 560 && anchored.height == 124)
+        runner.check("guide sits six points below settings",
+                     abs(anchored.maxY - (settings.minY - 6)) < 0.001)
+        runner.check("anchored guide stays on screen", screen.contains(anchored))
+
+        let fallback = PermissionGuideLayout.frame(settingsWindow: nil, visibleFrame: screen)
+        runner.check("guide falls back to bottom center",
+                     abs(fallback.minX - 440) < 0.001 && abs(fallback.minY - 28) < 0.001)
+
+        let bottomClamped = PermissionGuideLayout.frame(
+            settingsWindow: CGRect(x: 400, y: 0, width: 600, height: 450),
+            visibleFrame: screen
+        )
+        runner.check("guide clamps to screen bottom", abs(bottomClamped.minY - 8) < 0.001)
+        runner.check("bottom-clamped guide stays on screen", screen.contains(bottomClamped))
+
+        let leftClamped = PermissionGuideLayout.frame(
+            settingsWindow: CGRect(x: -500, y: 300, width: 600, height: 450),
+            visibleFrame: screen
+        )
+        runner.check("guide clamps to screen left", abs(leftClamped.minX - 8) < 0.001)
+
+        let secondary = CGRect(x: -1920, y: -200, width: 1920, height: 1080)
+        let secondaryFrame = PermissionGuideLayout.frame(
+            settingsWindow: CGRect(x: -1600, y: 300, width: 600, height: 400),
+            visibleFrame: secondary
+        )
+        runner.check("guide positions on secondary display",
+                     abs(secondaryFrame.minX - (-1580)) < 0.001 &&
+                     abs(secondaryFrame.minY - 170) < 0.001)
+        runner.check("secondary guide stays on screen", secondary.contains(secondaryFrame))
     }
 
     private static func testEngine(_ runner: TestRunner) {
