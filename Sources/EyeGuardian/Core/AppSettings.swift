@@ -15,7 +15,6 @@ struct AppSettings: Codable, Equatable {
     var restMinutes: Int = 5
     var reminderStyle: ReminderStyle = .notification
     var notificationIntervalMinutes: Int = 5
-    var peakRepeatMinutes: Int = 5
     var preReminderNotification: Bool = true
     var playSoundAtBreakEnd: Bool = true
     var skipMode: SkipMode = .button
@@ -55,7 +54,7 @@ struct AppSettings: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case fatigueThresholdMinutes, restMinutes, reminderStyle, notificationIntervalMinutes
-        case peakRepeatMinutes, preReminderNotification, playSoundAtBreakEnd, skipMode
+        case preReminderNotification, playSoundAtBreakEnd, skipMode
         case showSkipButton, showDockIcon, showStatusBarIcon, statusShowFatiguePercent
         case statusShowScreenTimeHours, statusShowScreenTimeMinutes, statusShowReminderCount
         case ringStyle, ringPalette, ringThickness, statusIconSize
@@ -71,7 +70,6 @@ struct AppSettings: Codable, Equatable {
         restMinutes = (try? c.decodeIfPresent(Int.self, forKey: .restMinutes)) ?? d.restMinutes
         reminderStyle = (try? c.decodeIfPresent(ReminderStyle.self, forKey: .reminderStyle)) ?? d.reminderStyle
         notificationIntervalMinutes = (try? c.decodeIfPresent(Int.self, forKey: .notificationIntervalMinutes)) ?? d.notificationIntervalMinutes
-        peakRepeatMinutes = (try? c.decodeIfPresent(Int.self, forKey: .peakRepeatMinutes)) ?? d.peakRepeatMinutes
         preReminderNotification = (try? c.decodeIfPresent(Bool.self, forKey: .preReminderNotification)) ?? d.preReminderNotification
         playSoundAtBreakEnd = (try? c.decodeIfPresent(Bool.self, forKey: .playSoundAtBreakEnd)) ?? d.playSoundAtBreakEnd
         skipMode = (try? c.decodeIfPresent(SkipMode.self, forKey: .skipMode)) ?? d.skipMode

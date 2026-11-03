@@ -111,10 +111,8 @@ struct SettingsView: View {
 
                 Stepper(value: $model.settings.notificationIntervalMinutes, in: 1...60) {
                     HStack {
-                        Text(L10n.t("ReminderInterval"))
+                        Text("\(L10n.t("PeakRepeat")) \(model.settings.notificationIntervalMinutes) \(L10n.t("Mins")) \(L10n.t("PeakRepeatSuffix"))")
                         Spacer()
-                        Text("\(model.settings.notificationIntervalMinutes) \(L10n.t("Mins"))")
-                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -126,13 +124,6 @@ struct SettingsView: View {
                     Text(L10n.t("SkipByButton")).tag(SkipMode.button)
                     Text(L10n.t("SkipByChallenge")).tag(SkipMode.challenge)
                     Text(L10n.t("CannotSkip")).tag(SkipMode.none)
-                }
-
-                Stepper(value: $model.settings.peakRepeatMinutes, in: 1...60) {
-                    HStack {
-                        Text("\(L10n.t("PeakRepeat")) \(model.settings.peakRepeatMinutes) \(L10n.t("Mins")) \(L10n.t("PeakRepeatSuffix"))")
-                        Spacer()
-                    }
                 }
 
                 Toggle(L10n.t("EnableScreenTimeReminder"), isOn: $model.settings.extraReminderEnabled)

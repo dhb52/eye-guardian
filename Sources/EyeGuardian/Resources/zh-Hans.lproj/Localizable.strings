@@ -104,7 +104,6 @@
 "MiniPopup" = "迷你弹窗";
 "FullScreen" = "全屏弹窗";
 "FatigueThreshold" = "疲劳阈值";
-"ReminderInterval" = "提醒间隔";
 "PreReminder" = "在弹窗出现前1分钟通知提醒";
 "PlaySound" = "休息结束时播放声音";
 "ShowSkipButton" = "在弹窗中展示跳过按钮";

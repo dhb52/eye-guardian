@@ -76,7 +76,7 @@ enum CoreTestsMain {
         var engine = FatigueEngine()
         for _ in 0..<40 {
             engine.tick(deltaSeconds: 60, screenActive: true, resting: false,
-                        workMinutes: 40, restMinutes: 5)
+                        workMinutes: 40)
         }
         runner.check("40 work minutes fill fatigue to 100", engine.fatigue >= 99.999)
         runner.check("engine percent rounds to 100", engine.percent == 100)
@@ -84,22 +84,32 @@ enum CoreTestsMain {
         engine.setFatigue(100)
         for _ in 0..<5 {
             engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
-                        workMinutes: 40, restMinutes: 5)
+                        workMinutes: 40)
         }
         runner.check("5 rest minutes empty fatigue", abs(engine.fatigue) < 0.0001)
 
+        engine.setFatigue(100)
+        engine.tick(deltaSeconds: 60, screenActive: false, resting: true, workMinutes: 40)
+        runner.check("one rest minute removes twenty percent", abs(engine.fatigue - 80) < 0.0001)
+
+        engine.setFatigue(100)
+        engine.applyRest(minutes: 2)
+        runner.check("two rest minutes remove forty percent", abs(engine.fatigue - 60) < 0.0001)
+        engine.applyRest(minutes: 10)
+        runner.check("applied rest never drops below zero", engine.fatigue == 0)
+
         engine.setFatigue(10)
         engine.tick(deltaSeconds: 3600, screenActive: false, resting: true,
-                    workMinutes: 40, restMinutes: 5)
+                    workMinutes: 40)
         runner.check("fatigue never drops below zero", engine.fatigue == 0)
 
         engine.tick(deltaSeconds: 3600, screenActive: true, resting: false,
-                    workMinutes: 5, restMinutes: 5)
+                    workMinutes: 5)
         runner.check("fatigue never exceeds one hundred", engine.fatigue == 100)
 
         engine.setFatigue(50)
         engine.tick(deltaSeconds: 120, screenActive: false, resting: false,
-                    workMinutes: 40, restMinutes: 5)
+                    workMinutes: 40)
         runner.check("idle without resting holds fatigue", abs(engine.fatigue - 50) < 0.0001)
     }
 
@@ -220,84 +230,93 @@ enum CoreTestsMain {
     private static func testScheduler(_ runner: TestRunner) {
         let start = makeDate(2026, 11, 3, 10, 0)
 
-        var config = BreakSchedulerConfig()
-        config.style = .fullScreen
-        config.preReminderEnabled = true
-        config.intervalMinutes = 5
-        config.peakRepeatMinutes = 3
+        var popup = BreakSchedulerConfig()
+        popup.style = .fullScreen
+        popup.preReminderEnabled = true
+        popup.intervalMinutes = 5
 
-        let preRate = 100.0 / (20 * 60)
         let scheduler = BreakScheduler(calendar: utc)
-        let far = scheduler.evaluate(now: start, fatigue: 90, ratePerSecond: preRate,
-                                     config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("pre-reminder waits until within a minute", far == .none)
+        let far = scheduler.evaluate(now: start, fatigue: 90,
+                                     config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("pre-reminder waits for peak fatigue", far == .none)
 
-        let near = scheduler.evaluate(now: start.addingTimeInterval(1), fatigue: 98, ratePerSecond: preRate,
-                                      config: config, todayScreenMinutes: 0, inBreak: false)
-        if case .preNotification(let seconds) = near {
-            runner.check("pre-reminder reports remaining seconds", seconds == 18)
-        } else {
-            runner.check("pre-reminder fires when close", false)
-        }
+        let due = scheduler.evaluate(now: start, fatigue: 100,
+                                     config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("peak starts a sixty second countdown", due == .preNotification(remainingSeconds: 60))
 
-        let repeated = scheduler.evaluate(now: start.addingTimeInterval(2), fatigue: 98.2, ratePerSecond: preRate,
-                                          config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("pre-reminder fires once", repeated == .none)
+        let counting = scheduler.evaluate(now: start.addingTimeInterval(59), fatigue: 100,
+                                          config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("countdown suppresses the popup", counting == .none)
 
-        let inBreak = scheduler.evaluate(now: start, fatigue: 100, ratePerSecond: 0,
-                                         config: config, todayScreenMinutes: 0, inBreak: true)
-        runner.check("no reminder while resting", inBreak == .none)
+        let afterCountdown = scheduler.evaluate(now: start.addingTimeInterval(60), fatigue: 100,
+                                                config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("popup appears when countdown ends", afterCountdown == .remind)
 
-        let due = scheduler.evaluate(now: start, fatigue: 100, ratePerSecond: 0,
-                                     config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("fatigue at peak triggers reminder", due == .remind)
+        scheduler.reminderShown(at: start.addingTimeInterval(60), config: popup)
+        runner.check("re-arm is interval times 59 seconds",
+                     scheduler.state.nextReminderAt == start.addingTimeInterval(60 + 5 * 59))
 
-        scheduler.reminderShown(at: start, config: config)
-        scheduler.reminderDismissed(at: start, config: config)
-        let tooSoon = scheduler.evaluate(now: start.addingTimeInterval(120), fatigue: 100, ratePerSecond: 0,
-                                         config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("popup cooldown suppresses early reminder", tooSoon == .none)
-        let afterCooldown = scheduler.evaluate(now: start.addingTimeInterval(181), fatigue: 100, ratePerSecond: 0,
-                                               config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("popup repeats after peak interval", afterCooldown == .remind)
+        let earlyRepeat = scheduler.evaluate(now: start.addingTimeInterval(200), fatigue: 100,
+                                             config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("re-arm suppresses early repeat", earlyRepeat == .none)
 
-        scheduler.breakCompleted(at: start)
-        let afterBreak = scheduler.evaluate(now: start.addingTimeInterval(400), fatigue: 0, ratePerSecond: 0,
-                                            config: config, todayScreenMinutes: 0, inBreak: false)
+        let rearmDue = scheduler.evaluate(now: start.addingTimeInterval(60 + 5 * 59), fatigue: 100,
+                                          config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("re-arm starts the countdown again", rearmDue == .preNotification(remainingSeconds: 60))
+
+        let secondPopup = scheduler.evaluate(now: start.addingTimeInterval(120 + 5 * 59), fatigue: 100,
+                                             config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("second popup follows the countdown", secondPopup == .remind)
+
+        scheduler.breakCompleted(at: start.addingTimeInterval(120 + 5 * 59))
+        let afterBreak = scheduler.evaluate(now: start.addingTimeInterval(60 + 5 * 59 + 400),
+                                            fatigue: 0, config: popup,
+                                            todayScreenMinutes: 0, inBreak: false)
         runner.check("completed break clears cooldown", afterBreak == .none)
 
-        let notificationConfig = BreakSchedulerConfig(style: .notification, preReminderEnabled: true,
-                                                      intervalMinutes: 5, peakRepeatMinutes: 3,
-                                                      extraReminderEnabled: false, extraReminderHours: 6)
+        let inBreak = scheduler.evaluate(now: start, fatigue: 100,
+                                         config: popup, todayScreenMinutes: 0, inBreak: true)
+        runner.check("no reminder while resting", inBreak == .none)
+
+        var notificationConfig = BreakSchedulerConfig()
+        notificationConfig.style = .notification
+        notificationConfig.preReminderEnabled = true
+        notificationConfig.intervalMinutes = 5
+
         let notifications = BreakScheduler(calendar: utc)
-        _ = notifications.evaluate(now: start, fatigue: 100, ratePerSecond: 0,
-                                   config: notificationConfig, todayScreenMinutes: 0, inBreak: false)
+        let notificationDue = notifications.evaluate(now: start, fatigue: 100,
+                                                      config: notificationConfig,
+                                                      todayScreenMinutes: 0, inBreak: false)
+        runner.check("notification style skips the countdown", notificationDue == .remind)
+
         notifications.reminderShown(at: start, config: notificationConfig)
-        let early = notifications.evaluate(now: start.addingTimeInterval(60), fatigue: 100, ratePerSecond: 0,
-                                           config: notificationConfig, todayScreenMinutes: 0, inBreak: false)
+        let early = notifications.evaluate(now: start.addingTimeInterval(60), fatigue: 100,
+                                           config: notificationConfig,
+                                           todayScreenMinutes: 0, inBreak: false)
         runner.check("notification interval suppresses early repeat", early == .none)
-        let later = notifications.evaluate(now: start.addingTimeInterval(301), fatigue: 100, ratePerSecond: 0,
-                                           config: notificationConfig, todayScreenMinutes: 0, inBreak: false)
+        let later = notifications.evaluate(now: start.addingTimeInterval(5 * 59), fatigue: 100,
+                                           config: notificationConfig,
+                                           todayScreenMinutes: 0, inBreak: false)
         runner.check("notification repeats after interval", later == .remind)
 
         let snoozed = BreakScheduler(calendar: utc)
         snoozed.snooze(until: start.addingTimeInterval(3600))
-        let whileSnoozed = snoozed.evaluate(now: start, fatigue: 100, ratePerSecond: 0,
-                                            config: config, todayScreenMinutes: 0, inBreak: false)
+        let whileSnoozed = snoozed.evaluate(now: start, fatigue: 100,
+                                            config: popup, todayScreenMinutes: 0, inBreak: false)
         runner.check("snooze suppresses reminders", whileSnoozed == .none)
         snoozed.resume()
-        let afterResume = snoozed.evaluate(now: start, fatigue: 100, ratePerSecond: 0,
-                                           config: config, todayScreenMinutes: 0, inBreak: false)
-        runner.check("resume restores reminders", afterResume == .remind)
+        let afterResume = snoozed.evaluate(now: start, fatigue: 100,
+                                           config: popup, todayScreenMinutes: 0, inBreak: false)
+        runner.check("resume restarts the countdown", afterResume == .preNotification(remainingSeconds: 60))
 
-        var extraConfig = config
+        var extraConfig = popup
         extraConfig.extraReminderEnabled = true
         extraConfig.extraReminderHours = 6
         let extra = BreakScheduler(calendar: utc)
-        let firstExtra = extra.evaluate(now: start, fatigue: 10, ratePerSecond: 0,
+        let firstExtra = extra.evaluate(now: start, fatigue: 10,
                                         config: extraConfig, todayScreenMinutes: 360, inBreak: false)
         runner.check("extra reminder fires at threshold", firstExtra == .extraReminder(hours: 6))
-        let secondExtra = extra.evaluate(now: start.addingTimeInterval(60), fatigue: 10, ratePerSecond: 0,
+        let secondExtra = extra.evaluate(now: start.addingTimeInterval(60), fatigue: 10,
                                          config: extraConfig, todayScreenMinutes: 400, inBreak: false)
         runner.check("extra reminder only once per day", secondExtra == .none)
     }

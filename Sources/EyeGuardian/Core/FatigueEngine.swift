@@ -8,16 +8,19 @@ struct FatigueEngine: Equatable {
     mutating func tick(deltaSeconds: Double,
                        screenActive: Bool,
                        resting: Bool,
-                       workMinutes: Int,
-                       restMinutes: Int) {
+                       workMinutes: Int) {
         guard deltaSeconds > 0 else { return }
         if resting {
-            let rate = 100.0 / (Double(clampValue(restMinutes, 1, 60)) * 60.0)
-            fatigue = max(0, fatigue - deltaSeconds * rate)
+            fatigue = max(0, fatigue - deltaSeconds * (20.0 / 60.0))
         } else if screenActive {
             let rate = 100.0 / (Double(clampValue(workMinutes, 5, 180)) * 60.0)
             fatigue = min(100, fatigue + deltaSeconds * rate)
         }
+    }
+
+    mutating func applyRest(minutes: Double) {
+        guard minutes > 0 else { return }
+        fatigue = max(0, fatigue - minutes * 20.0)
     }
 
     mutating func reset() {

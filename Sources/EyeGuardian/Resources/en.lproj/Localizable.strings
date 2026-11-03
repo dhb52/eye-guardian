@@ -104,7 +104,6 @@
 "MiniPopup" = "Mini popup";
 "FullScreen" = "Full-screen popup";
 "FatigueThreshold" = "Fatigue threshold";
-"ReminderInterval" = "Reminder Interval";
 "PreReminder" = "Show a notification 1 min before the reminder pops up";
 "PlaySound" = "Play sound when the break ends";
 "ShowSkipButton" = "Show the skip button when reminder pops up";

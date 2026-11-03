@@ -252,7 +252,8 @@ final class AppModel: ObservableObject {
             using = mouseActive || keyboardActive || screenChangeActive
         }
 
-        let resting = RestDetector.isResting(
+        let inBreak = breakSession != nil
+        let resting = inBreak || RestDetector.isResting(
             now: now,
             lastActivityAt: usageDetector.lastActivityAt,
             locked: locked,
@@ -260,13 +261,14 @@ final class AppModel: ObservableObject {
             inBreak: false,
             smartMode: smart
         )
-        let screenActive = using && !locked && !asleep
+        let screenActive = !inBreak && using && !locked && !asleep
 
-        engine.tick(deltaSeconds: dt,
-                    screenActive: screenActive,
-                    resting: resting,
-                    workMinutes: timing.workMinutes,
-                    restMinutes: timing.restMinutes)
+        if !inBreak {
+            engine.tick(deltaSeconds: dt,
+                        screenActive: screenActive,
+                        resting: resting,
+                        workMinutes: timing.workMinutes)
+        }
 
         if abs(engine.fatigue - fatigue) > 0.0001 {
             fatigue = engine.fatigue
@@ -305,11 +307,9 @@ final class AppModel: ObservableObject {
             }
         } else {
             let config = schedulerConfig(effective)
-            let ratePerSecond = screenActive ? 100.0 / (Double(timing.workMinutes) * 60) : 0
             let decision = scheduler.evaluate(
                 now: now,
                 fatigue: engine.fatigue,
-                ratePerSecond: ratePerSecond,
                 config: config,
                 todayScreenMinutes: todayScreenMinutes,
                 inBreak: false
@@ -445,24 +445,25 @@ final class AppModel: ObservableObject {
     func startBreakNow() {
         guard breakSession == nil else { return }
         let effective = settings.effective()
+        let timing = RuleResolver.effective(
+            now: Date(),
+            rules: settings.rules,
+            fallbackWork: effective.workMinutes,
+            fallbackRest: effective.restMinutes
+        )
         let style: ReminderStyle = effective.reminderStyle == .notification ? .fullScreen : effective.reminderStyle
-        beginBreakSession(style: style, effective: effective, triggeredByReminder: false)
+        beginBreakSession(style: style, restMinutes: timing.restMinutes,
+                          effective: effective, triggeredByReminder: false)
     }
 
     func skipCurrentReminder() {
         if breakSession != nil {
             skipBreak()
-            return
         }
-        scheduler.reminderDismissed(at: Date(),
-                                    config: schedulerConfig(settings.effective()))
     }
 
     func skipBreak() {
         guard breakSession != nil else { return }
-        let now = Date()
-        scheduler.reminderDismissed(at: now,
-                                    config: schedulerConfig(settings.effective()))
         breakSession = nil
         reminderWindows.hide()
     }
@@ -471,36 +472,17 @@ final class AppModel: ObservableObject {
         guard let session = breakSession else { return }
         store.insertAlertFinish(at: Date(), duration: TimeInterval(session.totalSeconds))
         scheduler.breakCompleted(at: Date())
-        engine.reset()
-        fatigue = 0
+        engine.applyRest(minutes: Double(session.totalSeconds) / 60.0)
+        fatigue = engine.fatigue
         playSound()
         breakSession = nil
         reminderWindows.hide()
+        updateDockIcon(force: true)
+        statusBar.refresh()
         refreshTodayStats()
     }
 
     private func presentScheduledReminder(effective: EffectiveSettings) {
-        guard breakSession == nil else { return }
-        let now = Date()
-        if effective.reminderStyle == .notification {
-            if !notificationsAvailable {
-                beginBreakSession(style: .miniPopup, effective: effective, triggeredByReminder: true)
-                return
-            }
-            notifications.postBreakReminder()
-            store.insertAlertStart(at: now, style: .notification)
-            scheduler.reminderShown(at: now, config: schedulerConfig(effective))
-            refreshTodayStats()
-        } else {
-            beginBreakSession(style: effective.reminderStyle,
-                              effective: effective,
-                              triggeredByReminder: true)
-        }
-    }
-
-    private func beginBreakSession(style: ReminderStyle,
-                                   effective: EffectiveSettings,
-                                   triggeredByReminder: Bool) {
         guard breakSession == nil else { return }
         let now = Date()
         let timing = RuleResolver.effective(
@@ -509,8 +491,32 @@ final class AppModel: ObservableObject {
             fallbackWork: effective.workMinutes,
             fallbackRest: effective.restMinutes
         )
+        if effective.reminderStyle == .notification {
+            if !notificationsAvailable {
+                beginBreakSession(style: .miniPopup, restMinutes: timing.restMinutes,
+                                  effective: effective, triggeredByReminder: true)
+                return
+            }
+            notifications.postBreakReminder()
+            store.insertAlertStart(at: now, style: .notification)
+            scheduler.reminderShown(at: now, config: schedulerConfig(effective))
+            refreshTodayStats()
+        } else {
+            beginBreakSession(style: effective.reminderStyle,
+                              restMinutes: timing.restMinutes,
+                              effective: effective,
+                              triggeredByReminder: true)
+        }
+    }
+
+    private func beginBreakSession(style: ReminderStyle,
+                                   restMinutes: Int,
+                                   effective: EffectiveSettings,
+                                   triggeredByReminder: Bool) {
+        guard breakSession == nil else { return }
+        let now = Date()
         let session = BreakSessionModel(
-            totalSeconds: timing.restMinutes * 60,
+            totalSeconds: clampValue(restMinutes, 1, 60) * 60,
             style: style,
             skipMode: effective.skipMode,
             showsSkipButton: settings.showSkipButton,
@@ -548,7 +554,6 @@ final class AppModel: ObservableObject {
             style: effective.reminderStyle,
             preReminderEnabled: settings.preReminderNotification,
             intervalMinutes: effective.notificationIntervalMinutes,
-            peakRepeatMinutes: clampValue(settings.peakRepeatMinutes, 1, 60),
             extraReminderEnabled: effective.extraReminderEnabled,
             extraReminderHours: effective.extraReminderHours
         )

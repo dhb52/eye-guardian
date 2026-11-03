@@ -4,7 +4,6 @@ struct BreakSchedulerConfig: Equatable {
     var style: ReminderStyle = .notification
     var preReminderEnabled: Bool = true
     var intervalMinutes: Int = 5
-    var peakRepeatMinutes: Int = 5
     var extraReminderEnabled: Bool = false
     var extraReminderHours: Int = 6
 }
@@ -12,7 +11,7 @@ struct BreakSchedulerConfig: Equatable {
 struct BreakSchedulerState: Equatable {
     var snoozeUntil: Date?
     var nextReminderAt: Date?
-    var preReminderSent = false
+    var preReminderDeadline: Date?
     var extraReminderFiredDay: String?
 
     func isSnoozed(at now: Date) -> Bool {
@@ -32,13 +31,9 @@ final class BreakScheduler {
 
     func evaluate(now: Date,
                   fatigue: Double,
-                  ratePerSecond: Double,
                   config: BreakSchedulerConfig,
                   todayScreenMinutes: Int,
                   inBreak: Bool) -> ReminderDecision {
-        if fatigue < 80 {
-            state.preReminderSent = false
-        }
         if inBreak { return .none }
         if state.isSnoozed(at: now) { return .none }
 
@@ -50,51 +45,37 @@ final class BreakScheduler {
             return .extraReminder(hours: extraHours)
         }
 
-        if config.style != .notification,
-           config.preReminderEnabled,
-           !state.preReminderSent,
-           ratePerSecond > 0,
-           fatigue < 99.5 {
-            let remainingSeconds = (99.5 - fatigue) / ratePerSecond
-            if remainingSeconds > 0, remainingSeconds <= 60 {
-                state.preReminderSent = true
-                return .preNotification(remainingSeconds: Int(remainingSeconds.rounded(.up)))
-            }
-        }
-
-        if fatigue >= 99.5 {
-            if let next = state.nextReminderAt, now < next { return .none }
+        if let deadline = state.preReminderDeadline {
+            if now < deadline { return .none }
+            state.preReminderDeadline = nil
             return .remind
         }
-        return .none
+
+        guard fatigue >= 99.999 else { return .none }
+        if let next = state.nextReminderAt, now < next { return .none }
+
+        if config.style != .notification, config.preReminderEnabled {
+            state.preReminderDeadline = now.addingTimeInterval(60)
+            return .preNotification(remainingSeconds: 60)
+        }
+        return .remind
     }
 
     func reminderShown(at now: Date, config: BreakSchedulerConfig) {
-        state.preReminderSent = false
-        if config.style == .notification {
-            state.nextReminderAt = now.addingTimeInterval(
-                TimeInterval(clampValue(config.intervalMinutes, 1, 60) * 60)
-            )
-        } else {
-            state.nextReminderAt = nil
-        }
-    }
-
-    func reminderDismissed(at now: Date, config: BreakSchedulerConfig) {
-        let minutes = config.style == .notification
-            ? clampValue(config.intervalMinutes, 1, 60)
-            : clampValue(config.peakRepeatMinutes, 1, 60)
-        state.nextReminderAt = now.addingTimeInterval(TimeInterval(minutes * 60))
-        state.preReminderSent = false
+        state.preReminderDeadline = nil
+        state.nextReminderAt = now.addingTimeInterval(
+            TimeInterval(clampValue(config.intervalMinutes, 1, 60) * 59)
+        )
     }
 
     func breakCompleted(at now: Date) {
         state.nextReminderAt = nil
-        state.preReminderSent = false
+        state.preReminderDeadline = nil
     }
 
     func snooze(until: Date) {
         state.snoozeUntil = until
+        state.preReminderDeadline = nil
     }
 
     func resume() {
