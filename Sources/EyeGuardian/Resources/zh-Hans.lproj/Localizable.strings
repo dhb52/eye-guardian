@@ -200,7 +200,7 @@
 "ScreenTimeStyleHours" = "小时";
 "ScreenTimeStyleMinutes" = "分钟";
 "StatusReminderCountHint" = "显示今日已提醒的次数。";
-"StatusIconSizeHint" = "渲染尺寸范围为 14–22 pt。";
+"StatusIconSizeHint" = "渲染尺寸范围为 18–26 pt。";
 "PointsFormat" = "%d pt";
 "StatusIconHidden" = "图标已隐藏";
 "PreviewMenuBarApp" = "访达";

@@ -462,7 +462,7 @@ struct SettingsView: View {
                               get: { model.settings.effectiveStatusIconSize },
                               set: { model.settings.statusIconSize = $0 }
                           ),
-                          range: 14...22,
+                          range: AppSettings.statusIconSizeRange,
                           valueText: L10n.f("PointsFormat", model.settings.effectiveStatusIconSize))
     }
 

@@ -11,7 +11,6 @@ enum IconArtwork {
     struct Look {
         var fatigue: CGFloat
         var compact: Bool = false
-        var showsNumber: Bool = false
         var style: RingStyle = .solid
         var palette: RingPalette = .spectrum
         var thickness: RingThickness = .regular
@@ -34,13 +33,23 @@ enum IconArtwork {
     static let glyphScale: CGFloat = 0.9
     static let center = NSPoint(x: 512, y: 512)
     static let ringRadius: CGFloat = 300
-    /// The visible arc runs from 148.69° to 391.31°; the 117.38° gap is centred on top.
-    static let arcStart: CGFloat = 148.69
-    static let arcSweep: CGFloat = 242.62
+    /// Visible break at 12 o'clock, in degrees — measured from the reference icon
+    /// (arc tips at ±35.8° off vertical). Round caps and dot bodies eat into their
+    /// path, so each shape widens the break by its own angular half-width.
+    static let ringGapDegrees: CGFloat = 70
     static let compactRingRadius: CGFloat = 320
     static let compactRingWidth: CGFloat = 96
-    /// Below this width neither dots nor the gap number can resolve.
+    /// Below this width the dot ring collapses into an unreadable smudge.
     static let smallDetailWidth: CGFloat = 96
+    /// Below this width a plate icon's gap number cannot be resolved.
+    static let numberDetailWidth: CGFloat = 48
+
+    /// Path angles whose round caps leave `ringGapDegrees` visible at 12 o'clock.
+    static func arcAngles(radius: CGFloat, width: CGFloat) -> (start: CGFloat, sweep: CGFloat) {
+        let capSweep = asin(min(1, width / 2 / radius)) * 180 / .pi
+        let pathGap = ringGapDegrees + capSweep * 2
+        return (90 + pathGap / 2, 360 - pathGap)
+    }
 
     struct Eye {
         var halfWidth: CGFloat
@@ -169,10 +178,8 @@ enum IconArtwork {
                     catchesLight: look.dark)
         }
 
-        if look.showsNumber && !look.compact && rect.width >= smallDetailWidth {
-            let numberColor = look.palette == .spectrum && look.dark
-                ? fill
-                : tint.ink.withAlphaComponent(0.92)
+        if !look.compact && rect.width >= numberDetailWidth {
+            let numberColor = look.palette == .spectrum && look.dark ? fill : tint.ink
             drawGapNumber(fatigue, color: numberColor)
         }
         context.restoreGraphicsState()
@@ -201,6 +208,7 @@ enum IconArtwork {
                     fatigue: fatigue, fill: fill, track: track)
         }
         drawMenuBarEye(center: center, eye: detailedEye, fatigue: fatigue, ink: ink)
+        drawGapNumber(fatigue, color: fill)
         context.restoreGraphicsState()
     }
 
@@ -242,9 +250,10 @@ enum IconArtwork {
 
     private static func drawArc(radius: CGFloat, width: CGFloat, fatigue: CGFloat,
                                 fill: NSColor, track: NSColor) {
+        let angles = arcAngles(radius: radius, width: width)
         let trackPath = NSBezierPath()
-        trackPath.appendArc(withCenter: center, radius: radius, startAngle: arcStart,
-                            endAngle: arcStart + arcSweep, clockwise: false)
+        trackPath.appendArc(withCenter: center, radius: radius, startAngle: angles.start,
+                            endAngle: angles.start + angles.sweep, clockwise: false)
         trackPath.lineWidth = width
         trackPath.lineCapStyle = .round
         track.setStroke()
@@ -252,8 +261,8 @@ enum IconArtwork {
 
         guard fatigue > 0.005 else { return }
         let progress = NSBezierPath()
-        progress.appendArc(withCenter: center, radius: radius, startAngle: arcStart,
-                           endAngle: arcStart + arcSweep * fatigue, clockwise: false)
+        progress.appendArc(withCenter: center, radius: radius, startAngle: angles.start,
+                           endAngle: angles.start + angles.sweep * fatigue, clockwise: false)
         progress.lineWidth = width
         progress.lineCapStyle = .round
         fill.setStroke()
@@ -264,9 +273,12 @@ enum IconArtwork {
                                  fill: NSColor, track: NSColor) {
         guard count > 0 else { return }
         let radius = diameter / 2
+        let dotSweep = asin(min(1, radius / ringRadius)) * 2 * 180 / .pi
+        let pitch = count > 1 ? (360 - ringGapDegrees - dotSweep) / CGFloat(count - 1) : 0
+        let first = 90 + ringGapDegrees / 2 + dotSweep / 2
         for index in 0..<count {
             let progress = (CGFloat(index) + 0.5) / CGFloat(count)
-            let angle = (arcStart + arcSweep * progress) * .pi / 180
+            let angle = (first + pitch * CGFloat(index)) * .pi / 180
             let dot = NSBezierPath(ovalIn: NSRect(x: center.x + ringRadius * cos(angle) - radius,
                                                   y: center.y + ringRadius * sin(angle) - radius,
                                                   width: diameter, height: diameter))
@@ -328,14 +340,23 @@ enum IconArtwork {
         return path
     }
 
+    /// Two digits nearly fill the gap; three digits shrink to stay clear of the arc tips.
+    private static let gapNumberSize: CGFloat = 224
+
     private static func drawGapNumber(_ fatigue: CGFloat, color: NSColor) {
         let text = NSString(string: "\(Int((fatigue * 100).rounded()))")
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 92, weight: .semibold),
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: gapNumberSize, weight: .bold),
             .foregroundColor: color,
             .kern: -2,
         ]
-        let size = text.size(withAttributes: attributes)
+        var size = text.size(withAttributes: attributes)
+        let available = 2 * ringRadius * sin(ringGapDegrees / 2 * .pi / 180) * 0.95
+        if size.width > available {
+            attributes[.font] = NSFont.monospacedDigitSystemFont(ofSize: gapNumberSize * available / size.width,
+                                                                weight: .bold)
+            size = text.size(withAttributes: attributes)
+        }
         text.draw(at: NSPoint(x: center.x - size.width / 2,
                               y: center.y + ringRadius - size.height / 2),
                   withAttributes: attributes)

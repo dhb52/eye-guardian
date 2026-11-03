@@ -200,7 +200,7 @@
 "ScreenTimeStyleHours" = "Hours";
 "ScreenTimeStyleMinutes" = "Minutes";
 "StatusReminderCountHint" = "Shows how many break reminders appeared today.";
-"StatusIconSizeHint" = "Rendered at 14–22 pt.";
+"StatusIconSizeHint" = "Rendered at 18–26 pt.";
 "PointsFormat" = "%d pt";
 "StatusIconHidden" = "Icon hidden";
 "PreviewMenuBarApp" = "Finder";

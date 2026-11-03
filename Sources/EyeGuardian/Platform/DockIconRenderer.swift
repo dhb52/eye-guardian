@@ -26,7 +26,7 @@ enum DockIconRenderer {
     private static func render(_ percent: Int, key: Key) -> NSImage {
         let side: CGFloat = 512
         let look = IconArtwork.Look(fatigue: CGFloat(percent) / 100, compact: false,
-                                    showsNumber: true, style: key.style, palette: key.palette,
+                                    style: key.style, palette: key.palette,
                                     thickness: key.thickness, dark: key.dark)
         return NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
             IconArtwork.draw(in: rect, look: look)

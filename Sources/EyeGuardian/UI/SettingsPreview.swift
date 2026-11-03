@@ -117,7 +117,7 @@ enum SettingsThumbnails {
     static func ring(style: RingStyle, palette: RingPalette,
                      thickness: RingThickness, dark: Bool) -> AnyView {
         AnyView(
-            Image(nsImage: StatusBarIconRenderer.image(fatigue: 80, points: 22,
+            Image(nsImage: StatusBarIconRenderer.image(fatigue: 88, points: 22,
                                                        style: style, palette: palette,
                                                        thickness: thickness, dark: dark,
                                                        template: false))

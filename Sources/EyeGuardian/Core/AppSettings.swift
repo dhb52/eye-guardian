@@ -28,7 +28,9 @@ struct AppSettings: Codable, Equatable {
     var ringStyle: RingStyle = .solid
     var ringPalette: RingPalette = .spectrum
     var ringThickness: RingThickness = .regular
-    var statusIconSize: Int = 18
+    /// Menu bar icon render size, in points.
+    static let statusIconSizeRange = 18...26
+    var statusIconSize: Int = AppSettings.statusIconSizeRange.lowerBound
     var language: AppLanguage = .system
     var launchAtLogin: Bool = false
     var usageMode: UsageMode = .smart
@@ -48,7 +50,11 @@ struct AppSettings: Codable, Equatable {
     var effectiveDetectMouse: Bool { detectionActive && detectMouse }
     var effectiveDetectKeyboard: Bool { detectionActive && detectKeyboard }
     var effectiveDetectScreenChanges: Bool { detectionActive && detectScreenChanges }
-    var effectiveStatusIconSize: Int { clampValue(statusIconSize, 14, 22) }
+    var effectiveStatusIconSize: Int { AppSettings.clampIconSize(statusIconSize) }
+
+    static func clampIconSize(_ points: Int) -> Int {
+        clampValue(points, statusIconSizeRange.lowerBound, statusIconSizeRange.upperBound)
+    }
 
     var statusPlacement: StatusPlacement {
         get {
@@ -139,15 +145,15 @@ struct AppSettings: Codable, Equatable {
         from container: KeyedDecodingContainer<CodingKeys>
     ) -> Int? {
         if let points = try? container.decodeIfPresent(Int.self, forKey: .statusIconSize) {
-            return clampValue(points, 14, 22)
+            return clampIconSize(points)
         }
         guard let legacy = try? container.decodeIfPresent(String.self, forKey: .statusIconSize) else {
             return nil
         }
         switch legacy {
-        case "small": return 14
-        case "large": return 22
-        default: return 18
+        case "small": return statusIconSizeRange.lowerBound
+        case "large": return statusIconSizeRange.upperBound
+        default: return statusIconSizeRange.lowerBound
         }
     }
 

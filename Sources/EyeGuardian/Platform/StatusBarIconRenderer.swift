@@ -28,11 +28,10 @@ enum StatusBarIconRenderer {
     }
 
     private static func render(_ percent: Int, key: Key) -> NSImage {
-        let side = CGFloat(clampValue(key.points, 14, 22))
+        let side = CGFloat(AppSettings.clampIconSize(key.points))
         let look = IconArtwork.Look(
             fatigue: CGFloat(percent) / 100,
             compact: false,
-            showsNumber: false,
             style: key.style,
             palette: key.palette,
             thickness: key.thickness,

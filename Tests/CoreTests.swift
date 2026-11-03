@@ -41,14 +41,14 @@ enum CoreTestsMain {
             return try? JSONDecoder().decode(AppSettings.self, from: data)
         }
 
-        runner.check("legacy large icon size maps to 22 points",
-                     decode("{\"statusIconSize\":\"large\"}")?.statusIconSize == 22)
-        runner.check("legacy small icon size maps to 14 points",
-                     decode("{\"statusIconSize\":\"small\"}")?.statusIconSize == 14)
+        runner.check("legacy large icon size maps to 26 points",
+                     decode("{\"statusIconSize\":\"large\"}")?.statusIconSize == 26)
+        runner.check("legacy small icon size maps to 18 points",
+                     decode("{\"statusIconSize\":\"small\"}")?.statusIconSize == 18)
         runner.check("numeric icon size is clamped",
-                     decode("{\"statusIconSize\":99}")?.effectiveStatusIconSize == 22)
+                     decode("{\"statusIconSize\":99}")?.effectiveStatusIconSize == 26)
         runner.check("numeric icon size below range is clamped",
-                     decode("{\"statusIconSize\":2}")?.effectiveStatusIconSize == 14)
+                     decode("{\"statusIconSize\":2}")?.effectiveStatusIconSize == 18)
         runner.check("unknown icon size string falls back to 18",
                      decode("{\"statusIconSize\":\"weird\"}")?.statusIconSize == 18)
         runner.check("missing icon size keeps the default",

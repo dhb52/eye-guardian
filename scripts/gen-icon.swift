@@ -2,8 +2,8 @@ import AppKit
 
 @main
 enum GenIcon {
-    /// Brand state: part-filled arc so the static icon shows both fill and track.
-    static let brandFatigue: CGFloat = 0.35
+    /// Brand state: 88% fill leaves a visible track tail and matches the static number.
+    static let brandFatigue: CGFloat = 0.88
 
     static let entries: [(name: String, pixels: Int)] = [
         ("icon_16x16", 16), ("icon_16x16@2x", 32),
@@ -29,7 +29,6 @@ enum GenIcon {
             } else {
                 let look = IconArtwork.Look(fatigue: brandFatigue,
                                             compact: entry.pixels <= 32,
-                                            showsNumber: false,
                                             style: .solid,
                                             palette: .spectrum,
                                             thickness: .regular,
