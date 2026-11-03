@@ -85,6 +85,12 @@ struct ChartPoint: Identifiable, Equatable {
     let value: Double
 }
 
+struct FatigueSample: Identifiable, Equatable {
+    var id: Date { date }
+    let date: Date
+    let value: Int
+}
+
 struct AnalysisData: Equatable {
     var screenTimeHours: [ChartPoint]
     var peakMinutes: [ChartPoint]

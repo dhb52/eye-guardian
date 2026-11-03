@@ -51,6 +51,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var snoozeUntil: Date?
     @Published private(set) var todayScreenMinutes = 0
     @Published private(set) var todayReminderCount = 0
+    @Published private(set) var todayFatigueSamples: [FatigueSample] = []
     @Published var selectedSection: Section = .today
     @Published var isHelpPresented = false
 
@@ -320,10 +321,12 @@ final class AppModel: ObservableObject {
     }
 
     private func refreshTodayStats() {
-        let stats = store.todayStats(now: Date())
+        let now = Date()
+        let stats = store.todayStats(now: now)
         todayScreenMinutes = stats.screenMinutes
         todayReminderCount = stats.reminderCount
         todayScreenSeconds = Double(stats.screenMinutes * 60)
+        todayFatigueSamples = store.todayFatigueSamples(now: now)
     }
 
     // MARK: - Settings

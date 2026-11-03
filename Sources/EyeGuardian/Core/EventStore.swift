@@ -163,6 +163,24 @@ final class EventStore: @unchecked Sendable {
         return TodayStats(screenMinutes: screen, reminderCount: reminders)
     }
 
+    func todayFatigueSamples(now: Date) -> [FatigueSample] {
+        lock.lock()
+        defer { lock.unlock() }
+        let start = timestamp(calendar.startOfDay(for: now))
+        let end = timestamp(now.addingTimeInterval(1))
+        let sql = "SELECT ts, fatigue FROM usage_sample WHERE ts >= ? AND ts < ? ORDER BY ts;"
+        guard let statement = prepare(sql) else { return [] }
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int64(statement, 1, start)
+        sqlite3_bind_int64(statement, 2, end)
+        var samples: [FatigueSample] = []
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let date = Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(statement, 0)))
+            samples.append(FatigueSample(date: date, value: Int(sqlite3_column_int(statement, 1))))
+        }
+        return samples
+    }
+
     func earliestSampleDate() -> Date? {
         lock.lock()
         defer { lock.unlock() }

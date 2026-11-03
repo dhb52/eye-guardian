@@ -29,6 +29,7 @@ enum CoreTestsMain {
         testDetectionGating(runner)
         testScheduler(runner)
         testEventStore(runner)
+        testTodayFatigueSamples(runner)
         testPermissionGuideLayout(runner)
         testSettingsMigration(runner)
         testStatusPresentation(runner)
@@ -467,5 +468,26 @@ enum CoreTestsMain {
             runner.check("monthly aggregates all samples", abs(november.value - 3.0 / 60.0) < 0.0001)
             runner.check("monthly peak aggregates", monthly.peakMinutes.last?.value == 2)
         }
+    }
+
+    private static func testTodayFatigueSamples(_ runner: TestRunner) {
+        let store = try! EventStore(path: ":memory:", calendar: utc)
+        defer { store.close() }
+
+        let midnight = makeDate(2026, 11, 3, 0, 0)
+        let now = makeDate(2026, 11, 3, 12, 0)
+        let midday = makeDate(2026, 11, 3, 9, 30)
+
+        store.insertSample(at: makeDate(2026, 11, 2, 23, 59), fatigue: 88, isUsing: true)
+        store.insertSample(at: midnight, fatigue: 10, isUsing: true)
+        store.insertSample(at: midday, fatigue: 42, isUsing: false)
+        store.insertSample(at: now, fatigue: 70, isUsing: true)
+        store.insertSample(at: makeDate(2026, 11, 3, 12, 1), fatigue: 71, isUsing: true)
+
+        let samples = store.todayFatigueSamples(now: now)
+        runner.check("today fatigue samples span the current day only",
+                     samples.map(\.value) == [10, 42, 70])
+        runner.check("today fatigue samples keep their timestamps",
+                     samples.map(\.date) == [midnight, midday, now])
     }
 }
