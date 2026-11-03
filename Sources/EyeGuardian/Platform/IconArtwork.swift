@@ -3,6 +3,11 @@ import AppKit
 /// Single source of truth for the app icon, the live Dock badge and the
 /// menu bar template. Coordinates use a 1024×1024 canvas, origin bottom left.
 enum IconArtwork {
+    enum Surface {
+        case appIcon
+        case menuBar
+    }
+
     struct Look {
         var fatigue: CGFloat
         var compact: Bool = false
@@ -11,6 +16,7 @@ enum IconArtwork {
         var palette: RingPalette = .spectrum
         var thickness: RingThickness = .regular
         var dark: Bool = true
+        var surface: Surface = .appIcon
     }
 
     private struct Tone {
@@ -127,6 +133,10 @@ enum IconArtwork {
         defer { context.restoreGraphicsState() }
 
         let fatigue = min(max(look.fatigue, 0), 1)
+        if look.surface == .menuBar {
+            drawMenuBarGlyph(fatigue: fatigue, look: look)
+            return
+        }
         let tint = tone(dark: look.dark)
         drawPlate(tint: tint)
 
@@ -165,6 +175,54 @@ enum IconArtwork {
                 : tint.ink.withAlphaComponent(0.92)
             drawGapNumber(fatigue, color: numberColor)
         }
+        context.restoreGraphicsState()
+    }
+
+    private static let menuBarGlyphScale: CGFloat = 1.2
+
+    private static func drawMenuBarGlyph(fatigue: CGFloat, look: Look) {
+        guard let context = NSGraphicsContext.current else { return }
+        let template = look.palette == .monochrome
+        let ink: NSColor = template ? .black : (look.dark ? .white : .black)
+        let fill = template ? ink : spectrum(fatigue)
+        let track = ink.withAlphaComponent(template ? 0.35 : 0.18)
+
+        context.saveGraphicsState()
+        context.cgContext.translateBy(x: center.x, y: center.y)
+        context.cgContext.scaleBy(x: menuBarGlyphScale, y: menuBarGlyphScale)
+        context.cgContext.translateBy(x: -center.x, y: -center.y)
+
+        if look.style == .dotted {
+            drawDots(diameter: CGFloat(look.thickness.dotDiameter),
+                     count: look.thickness.dotCount,
+                     fatigue: fatigue, fill: fill, track: track)
+        } else {
+            drawArc(radius: ringRadius, width: CGFloat(look.thickness.ringWidth),
+                    fatigue: fatigue, fill: fill, track: track)
+        }
+        drawMenuBarEye(center: center, eye: detailedEye, fatigue: fatigue, ink: ink)
+        context.restoreGraphicsState()
+    }
+
+    private static func drawMenuBarEye(center: NSPoint, eye: Eye,
+                                       fatigue: CGFloat, ink: NSColor) {
+        let droop = fatigue * 0.55
+        let lidApex = eye.upperApex + (eye.lidFloor - eye.upperApex) * droop
+        let irisRadius = eye.pupilRadius * (1 - 0.28 * droop)
+        let irisCenter = NSPoint(x: center.x,
+                                 y: center.y + lidApex - irisRadius - eye.upperApex * 0.05)
+        let shape = eyePath(center: center, eye: eye, lidApex: lidApex)
+        ink.setFill()
+        shape.fill()
+
+        guard let context = NSGraphicsContext.current else { return }
+        context.saveGraphicsState()
+        shape.addClip()
+        context.compositingOperation = .clear
+        NSBezierPath(ovalIn: NSRect(x: irisCenter.x - irisRadius,
+                                    y: irisCenter.y - irisRadius,
+                                    width: irisRadius * 2,
+                                    height: irisRadius * 2)).fill()
         context.restoreGraphicsState()
     }
 

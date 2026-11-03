@@ -2,11 +2,20 @@ import AppKit
 
 @MainActor
 final class StatusBarController: NSObject, NSMenuDelegate {
+    private struct IconState: Equatable {
+        let percent: Int
+        let points: Int
+        let style: RingStyle
+        let palette: RingPalette
+        let thickness: RingThickness
+        let dark: Bool
+    }
+
     private let model: AppModel
     private let statusItem: NSStatusItem
     private var lastTitle = ""
-    private var lastIconPercent: Int?
-    private var lastIconSize: StatusIconSize?
+    private var lastIconState: IconState?
+    private var appearanceObservation: NSKeyValueObservation?
 
     init(model: AppModel) {
         self.model = model
@@ -14,13 +23,12 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         super.init()
 
         if let button = statusItem.button {
-            button.image = StatusBarIconRenderer.image(fatigue: model.fatiguePercent,
-                                                       size: model.settings.statusIconSize)
             button.setAccessibilityLabel(L10n.t("AppName"))
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
-            lastIconPercent = model.fatiguePercent
-            lastIconSize = model.settings.statusIconSize
+            appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+                Task { @MainActor in self?.refresh() }
+            }
         }
 
         let menu = NSMenu()
@@ -34,27 +42,34 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.isVisible = visible
     }
 
+    private var usesDarkMenuBar: Bool {
+        let appearance = statusItem.button?.effectiveAppearance ?? NSApp.effectiveAppearance
+        return appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+    }
+
     func refresh() {
         let settings = model.settings
-        if lastIconPercent != model.fatiguePercent || lastIconSize != settings.statusIconSize {
-            lastIconPercent = model.fatiguePercent
-            lastIconSize = settings.statusIconSize
-            statusItem.button?.image = StatusBarIconRenderer.image(fatigue: model.fatiguePercent,
-                                                                   size: settings.statusIconSize)
+        let state = IconState(percent: model.fatiguePercent,
+                              points: settings.effectiveStatusIconSize,
+                              style: settings.ringStyle,
+                              palette: settings.ringPalette,
+                              thickness: settings.ringThickness,
+                              dark: usesDarkMenuBar)
+        if state != lastIconState {
+            lastIconState = state
+            statusItem.button?.image = StatusBarIconRenderer.image(
+                fatigue: state.percent,
+                points: state.points,
+                style: state.style,
+                palette: state.palette,
+                thickness: state.thickness,
+                dark: state.dark
+            )
         }
-        var parts: [String] = []
-        if settings.statusShowFatiguePercent {
-            parts.append("\(model.fatiguePercent)%")
-        }
-        if settings.statusShowScreenTimeHours {
-            parts.append(String(format: "%.1fh", Double(model.todayScreenMinutes) / 60.0))
-        }
-        if settings.statusShowScreenTimeMinutes {
-            parts.append("\(model.todayScreenMinutes)m")
-        }
-        if settings.statusShowReminderCount {
-            parts.append("\(model.todayReminderCount)x")
-        }
+        let parts = StatusBarTextFormatter.parts(fatiguePercent: model.fatiguePercent,
+                                                 screenMinutes: model.todayScreenMinutes,
+                                                 reminderCount: model.todayReminderCount,
+                                                 settings: settings)
         let title = parts.joined(separator: " · ")
         if title != lastTitle {
             statusItem.button?.title = title
