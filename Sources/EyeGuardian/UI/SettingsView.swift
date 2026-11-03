@@ -7,13 +7,58 @@ struct SettingsView: View {
     @StateObject private var local = SettingsLocalState()
 
     var body: some View {
+        HStack(spacing: 0) {
+            tabList
+            Divider()
+            content
+        }
+        .frame(minWidth: 720, minHeight: 540)
+        .alert(L10n.t("AppName"), isPresented: $local.showingAlert) {
+            Button(L10n.t("OK")) {}
+        } message: {
+            Text(local.alertMessage)
+        }
+    }
+
+    private var tabList: some View {
+        SettingsTabList(selection: $local.selectedTab)
+    }
+
+    private var content: some View {
+        Group {
+            switch local.selectedTab {
+            case .permissions:
+                permissionsPane
+            case .general:
+                generalPane
+            case .reminders:
+                remindersPane
+            case .accuracy:
+                accuracyPane
+            case .appearance:
+                appearancePane
+            case .data:
+                dataPane
+            }
+        }
+        .formStyle(.grouped)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var permissionsPane: some View {
         Form {
-            Section(L10n.t("Permissions")) {
+            Section {
                 PermissionList()
                 PermissionFooter()
             }
+        }
+    }
 
-            Section(L10n.t("General")) {
+    private var generalPane: some View {
+        Form {
+            Section {
                 Toggle(L10n.t("LaunchAtLogin"), isOn: $model.settings.launchAtLogin)
                 Toggle(L10n.t("ShowDockIcon"), isOn: dockBinding)
                 Toggle(L10n.t("ShowStatusBarIcon"), isOn: statusBarBinding)
@@ -34,14 +79,17 @@ struct SettingsView: View {
                         .foregroundStyle(.red)
                 }
             }
+        }
+    }
 
-            Section(L10n.t("RemindersSection")) {
+    private var remindersPane: some View {
+        Form {
+            Section {
                 Picker(L10n.t("ReminderStyle"), selection: $model.settings.reminderStyle) {
                     Text(L10n.t("Notification")).tag(ReminderStyle.notification)
                     Text(L10n.t("MiniPopup")).tag(ReminderStyle.miniPopup)
                     Text(L10n.t("FullScreen")).tag(ReminderStyle.fullScreen)
                 }
-               
 
                 Stepper(value: $model.settings.fatigueThresholdMinutes, in: 5...180, step: 5) {
                     HStack {
@@ -51,7 +99,6 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-               
 
                 Stepper(value: $model.settings.restMinutes, in: 1...60) {
                     HStack {
@@ -61,7 +108,6 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-               
 
                 Stepper(value: $model.settings.notificationIntervalMinutes, in: 1...60) {
                     HStack {
@@ -71,7 +117,6 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-               
 
                 Toggle(L10n.t("PreReminder"), isOn: $model.settings.preReminderNotification)
                 Toggle(L10n.t("PlaySound"), isOn: $model.settings.playSoundAtBreakEnd)
@@ -82,7 +127,6 @@ struct SettingsView: View {
                     Text(L10n.t("SkipByChallenge")).tag(SkipMode.challenge)
                     Text(L10n.t("CannotSkip")).tag(SkipMode.none)
                 }
-               
 
                 Stepper(value: $model.settings.peakRepeatMinutes, in: 1...60) {
                     HStack {
@@ -92,7 +136,6 @@ struct SettingsView: View {
                 }
 
                 Toggle(L10n.t("EnableScreenTimeReminder"), isOn: $model.settings.extraReminderEnabled)
-                   
 
                 Stepper(value: $model.settings.extraReminderHours, in: 1...24) {
                     HStack {
@@ -104,8 +147,12 @@ struct SettingsView: View {
                 }
                 .disabled(!model.settings.extraReminderEnabled)
             }
+        }
+    }
 
-            Section(L10n.t("AccuracySection")) {
+    private var accuracyPane: some View {
+        Form {
+            Section {
                 Picker(L10n.t("Mode"), selection: $model.settings.usageMode) {
                     Text(L10n.t("SmartMode")).tag(UsageMode.smart)
                     Text(L10n.t("DumbMode")).tag(UsageMode.dumb)
@@ -113,12 +160,46 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
 
                 Toggle(L10n.t("DetectMouse"), isOn: $model.settings.detectMouse)
+                    .disabled(!model.settings.detectionActive)
                 Toggle(L10n.t("DetectKeyboard"), isOn: $model.settings.detectKeyboard)
+                    .disabled(!model.settings.detectionActive)
                 Toggle(L10n.t("DetectScreen"), isOn: $model.settings.detectScreenChanges)
+                    .disabled(!model.settings.detectionActive)
                 Toggle(L10n.t("MovieMode"), isOn: $model.settings.movieMode)
+                    .disabled(!model.settings.detectionActive)
+            } footer: {
+                Text(L10n.t("SmartOnlyHint"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var appearancePane: some View {
+        Form {
+            Section(L10n.t("IconSection")) {
+                Picker(L10n.t("RingStyle"), selection: $model.settings.ringStyle) {
+                    Text(L10n.t("RingStyleSolid")).tag(RingStyle.solid)
+                    Text(L10n.t("RingStyleDotted")).tag(RingStyle.dotted)
+                }
+                Picker(L10n.t("RingPalette"), selection: $model.settings.ringPalette) {
+                    Text(L10n.t("RingPaletteMono")).tag(RingPalette.monochrome)
+                    Text(L10n.t("RingPaletteSpectrum")).tag(RingPalette.spectrum)
+                }
+                Picker(L10n.t("RingThickness"), selection: $model.settings.ringThickness) {
+                    Text(L10n.t("RingThicknessThin")).tag(RingThickness.thin)
+                    Text(L10n.t("RingThicknessRegular")).tag(RingThickness.regular)
+                    Text(L10n.t("RingThicknessThick")).tag(RingThickness.thick)
+                }
+                Picker(L10n.t("StatusIconSize"), selection: $model.settings.statusIconSize) {
+                    Text(L10n.t("StatusIconSizeSmall")).tag(StatusIconSize.small)
+                    Text(L10n.t("StatusIconSizeMedium")).tag(StatusIconSize.medium)
+                    Text(L10n.t("StatusIconSizeLarge")).tag(StatusIconSize.large)
+                }
             }
 
-            Section(L10n.t("AppearanceSection")) {
+            Section {
                 Picker(L10n.t("PopupBackgroundLabel"), selection: $model.settings.popupBackground) {
                     Text(L10n.t("Auto")).tag(PopupBackground.system)
                     Text(L10n.t("Light")).tag(PopupBackground.light)
@@ -126,7 +207,6 @@ struct SettingsView: View {
                     Text(L10n.t("Purple")).tag(PopupBackground.purple)
                     Text(L10n.t("CustomImage")).tag(PopupBackground.customImage)
                 }
-               
 
                 if model.settings.popupBackground == .customImage {
                     HStack(spacing: 12) {
@@ -140,7 +220,6 @@ struct SettingsView: View {
                         }
                         Spacer()
                     }
-                   
                 }
 
                 Toggle(L10n.t("ShowScreenTimeOnPopup"), isOn: $model.settings.showScreenTimeOnPopup)
@@ -150,10 +229,13 @@ struct SettingsView: View {
                     TextField(L10n.t("TakeABreak"), text: $model.settings.popupText)
                         .frame(width: 220)
                 }
-               
             }
+        }
+    }
 
-            Section(L10n.t("DataSection")) {
+    private var dataPane: some View {
+        Form {
+            Section {
                 Button(L10n.t("ExportCSV")) {
                     exportCSV()
                 }
@@ -166,15 +248,6 @@ struct SettingsView: View {
                         .textSelection(.enabled)
                 }
             }
-
-        }
-        .formStyle(.grouped)
-        .padding(20)
-        .frame(minWidth: 620, minHeight: 700)
-        .alert(L10n.t("AppName"), isPresented: $local.showingAlert) {
-            Button(L10n.t("OK")) {}
-        } message: {
-            Text(local.alertMessage)
         }
     }
 
@@ -270,9 +343,62 @@ struct SettingsView: View {
     }
 }
 
+private enum SettingsTab: String, CaseIterable, Identifiable {
+    case permissions
+    case general
+    case reminders
+    case accuracy
+    case appearance
+    case data
+
+    var id: String { rawValue }
+
+    var titleKey: String {
+        switch self {
+        case .permissions: return "Permissions"
+        case .general: return "General"
+        case .reminders: return "RemindersSection"
+        case .accuracy: return "AccuracySection"
+        case .appearance: return "AppearanceSection"
+        case .data: return "DataSection"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .permissions: return "lock.shield"
+        case .general: return "gearshape"
+        case .reminders: return "bell"
+        case .accuracy: return "scope"
+        case .appearance: return "paintbrush"
+        case .data: return "externaldrive"
+        }
+    }
+}
+
+private struct SettingsTabList: View {
+    @Binding var selection: SettingsTab
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ForEach(SettingsTab.allCases) { tab in
+                SidebarRow(title: L10n.t(tab.titleKey),
+                           systemImage: tab.systemImage,
+                           isSelected: selection == tab) {
+                    selection = tab
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(width: 190)
+        .background(Color(nsColor: .underPageBackgroundColor))
+    }
+}
 
 @MainActor
 private final class SettingsLocalState: ObservableObject {
+    @Published var selectedTab: SettingsTab = .permissions
     @Published var alertMessage = ""
     @Published var showingAlert = false
 }

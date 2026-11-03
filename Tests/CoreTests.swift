@@ -26,6 +26,7 @@ enum CoreTestsMain {
         testRestDetector(runner)
         testRuleResolver(runner)
         testEffectiveSettings(runner)
+        testDetectionGating(runner)
         testScheduler(runner)
         testEventStore(runner)
         testPermissionGuideLayout(runner)
@@ -187,6 +188,33 @@ enum CoreTestsMain {
         let clampedEffective = clamped.effective()
         runner.check("effective settings clamp durations",
                      clampedEffective.workMinutes == 5 && clampedEffective.restMinutes == 60)
+    }
+
+    private static func testDetectionGating(_ runner: TestRunner) {
+        var settings = AppSettings()
+        settings.detectMouse = true
+        settings.detectKeyboard = false
+        settings.detectScreenChanges = true
+
+        runner.check("smart mode activates enabled detectors",
+                     settings.detectionActive
+                     && settings.effectiveDetectMouse
+                     && !settings.effectiveDetectKeyboard
+                     && settings.effectiveDetectScreenChanges)
+
+        settings.usageMode = .dumb
+        runner.check("dumb mode deactivates all detectors",
+                     !settings.detectionActive
+                     && !settings.effectiveDetectMouse
+                     && !settings.effectiveDetectKeyboard
+                     && !settings.effectiveDetectScreenChanges)
+
+        settings.usageMode = .smart
+        runner.check("smart mode restores stored detector values",
+                     settings.effectiveDetectMouse
+                     && !settings.effectiveDetectKeyboard
+                     && settings.effectiveDetectScreenChanges
+                     && settings.detectScreenChanges)
     }
 
     private static func testScheduler(_ runner: TestRunner) {

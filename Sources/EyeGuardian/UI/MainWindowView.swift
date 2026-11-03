@@ -47,7 +47,11 @@ private struct SidebarView: View {
 
             VStack(spacing: 4) {
                 ForEach(AppModel.Section.allCases) { section in
-                    navRow(section)
+                    SidebarRow(title: L10n.t(section.titleKey),
+                               systemImage: section.systemImage,
+                               isSelected: model.selectedSection == section) {
+                        model.selectedSection = section
+                    }
                 }
             }
 
@@ -102,30 +106,6 @@ private struct SidebarView: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
-    }
-
-    private func navRow(_ section: AppModel.Section) -> some View {
-        let selected = model.selectedSection == section
-        return Button {
-            model.selectedSection = section
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: section.systemImage)
-                    .frame(width: 18)
-                Text(L10n.t(section.titleKey))
-                    .font(.system(size: 13, weight: .medium))
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, 7)
-            .padding(.horizontal, 10)
-            .contentShape(Rectangle())
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(selected ? Theme.accent.opacity(0.15) : Color.clear)
-            )
-            .foregroundStyle(selected ? Theme.accent : Color.primary)
-        }
-        .buttonStyle(.plain)
     }
 }
 

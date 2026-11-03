@@ -80,10 +80,11 @@ final class AppModel: ObservableObject {
     private var napToken: NSObjectProtocol?
     private var detectorConfig: (mouse: Bool, keyboard: Bool, screen: Bool) = (false, false, false)
     private var activeObserver: NSObjectProtocol?
+    private var appearanceObservation: NSKeyValueObservation?
     private var lastDockPercent = -1
     private var loginItemDesired: Bool?
-    private var lastDetectScreenChanges = false
-    private var lastDetectKeyboard = false
+    private var lastScreenDetectionActive = false
+    private var lastKeyboardDetectionActive = false
 
     private let hotKey = HotKeyManager()
     private(set) lazy var statusBar = StatusBarController(model: self)
@@ -137,9 +138,16 @@ final class AppModel: ObservableObject {
             reason: "Fatigue monitoring"
         )
         systemState.start()
+        appearanceObservation = NSApplication.shared.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+            Task { @MainActor in
+                self?.updateDockIcon(force: true)
+                self?.statusBar.refresh()
+            }
+        }
         accessibilityTrusted = UsageDetector.isAccessibilityTrusted
         screenRecordingTrusted = ScreenChangeDetector.hasPermission
-        lastDetectKeyboard = settings.detectKeyboard
+        lastKeyboardDetectionActive = settings.effectiveDetectKeyboard
+        lastScreenDetectionActive = settings.effectiveDetectScreenChanges
         screenDetector.onChange = { [weak self] in
             self?.usageDetector.mark(.screen)
         }
@@ -226,18 +234,20 @@ final class AppModel: ObservableObject {
         let locked = systemState.isLocked
         let asleep = systemState.isAsleep
         let smart = settings.usageMode == .smart && !settings.movieMode
-        let anyDetector = settings.detectMouse || settings.detectKeyboard || settings.detectScreenChanges
+        let anyDetector = settings.effectiveDetectMouse
+            || settings.effectiveDetectKeyboard
+            || settings.effectiveDetectScreenChanges
 
         let using: Bool
         if settings.movieMode || settings.usageMode == .dumb || !anyDetector {
             using = !locked && !asleep
         } else {
             let activityWindow: TimeInterval = 60
-            let mouseActive = settings.detectMouse &&
+            let mouseActive = settings.effectiveDetectMouse &&
                 (usageDetector.lastMouse.map { now.timeIntervalSince($0) <= activityWindow } ?? false)
-            let keyboardActive = settings.detectKeyboard &&
+            let keyboardActive = settings.effectiveDetectKeyboard &&
                 (usageDetector.lastKeyboard.map { now.timeIntervalSince($0) <= activityWindow } ?? false)
-            let screenChangeActive = settings.detectScreenChanges &&
+            let screenChangeActive = settings.effectiveDetectScreenChanges &&
                 (usageDetector.lastScreen.map { now.timeIntervalSince($0) <= activityWindow } ?? false)
             using = mouseActive || keyboardActive || screenChangeActive
         }
@@ -323,17 +333,17 @@ final class AppModel: ObservableObject {
     }
 
     private func applySettings() {
-        if settings.detectKeyboard && !lastDetectKeyboard
+        if settings.effectiveDetectKeyboard && !lastKeyboardDetectionActive
             && !UsageDetector.isAccessibilityTrusted {
             openPermissionSettings(.accessibility)
         }
-        lastDetectKeyboard = settings.detectKeyboard
+        lastKeyboardDetectionActive = settings.effectiveDetectKeyboard
 
-        if settings.detectScreenChanges && !lastDetectScreenChanges
+        if settings.effectiveDetectScreenChanges && !lastScreenDetectionActive
             && !ScreenChangeDetector.hasPermission {
             openPermissionSettings(.screenRecording)
         }
-        lastDetectScreenChanges = settings.detectScreenChanges
+        lastScreenDetectionActive = settings.effectiveDetectScreenChanges
 
         configureDetectors(force: false)
         applyActivationPolicy()
@@ -356,7 +366,13 @@ final class AppModel: ObservableObject {
         let percent = engine.percent
         guard force || percent != lastDockPercent else { return }
         lastDockPercent = percent
-        NSApp.applicationIconImage = DockIconRenderer.image(fatigue: percent)
+        NSApp.applicationIconImage = DockIconRenderer.image(
+            fatigue: percent,
+            style: settings.ringStyle,
+            palette: settings.ringPalette,
+            thickness: settings.ringThickness,
+            dark: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        )
     }
 
     private func applyLaunchAtLogin() {
@@ -371,14 +387,14 @@ final class AppModel: ObservableObject {
     }
 
     private func configureDetectors(force: Bool) {
-        let config = (mouse: settings.detectMouse,
-                      keyboard: settings.detectKeyboard,
-                      screen: settings.detectScreenChanges)
+        let config = (mouse: settings.effectiveDetectMouse,
+                      keyboard: settings.effectiveDetectKeyboard,
+                      screen: settings.effectiveDetectScreenChanges)
         if force || config != detectorConfig {
             detectorConfig = config
             usageDetector.start(mouse: config.mouse, keyboard: config.keyboard)
         }
-        if settings.detectScreenChanges, ScreenChangeDetector.hasPermission {
+        if config.screen, ScreenChangeDetector.hasPermission {
             screenDetector.start()
         } else {
             screenDetector.stop()
@@ -390,18 +406,21 @@ final class AppModel: ObservableObject {
         let trusted = UsageDetector.isAccessibilityTrusted
         if trusted != accessibilityTrusted {
             accessibilityTrusted = trusted
-            usageDetector.start(mouse: settings.detectMouse, keyboard: settings.detectKeyboard)
+            usageDetector.start(mouse: settings.effectiveDetectMouse,
+                                keyboard: settings.effectiveDetectKeyboard)
         }
 
         let screenTrusted = ScreenChangeDetector.hasPermission
         if screenTrusted != screenRecordingTrusted { screenRecordingTrusted = screenTrusted }
 
-        if settings.detectScreenChanges {
+        if settings.effectiveDetectScreenChanges {
             if screenTrusted {
                 screenDetector.start()
             } else {
                 screenDetector.stop()
             }
+        } else {
+            screenDetector.stop()
         }
 
         refreshNotificationAuthorization()

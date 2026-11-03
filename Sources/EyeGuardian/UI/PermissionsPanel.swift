@@ -194,10 +194,10 @@ extension AppModel {
         [
             PermissionStatus(kind: .accessibility,
                              state: mergedState(granted: accessibilityTrusted,
-                                                needed: settings.detectKeyboard)),
+                                                needed: settings.effectiveDetectKeyboard)),
             PermissionStatus(kind: .screenRecording,
                              state: mergedState(granted: screenRecordingTrusted,
-                                                needed: settings.detectScreenChanges)),
+                                                needed: settings.effectiveDetectScreenChanges)),
             PermissionStatus(kind: .notifications, state: notificationState),
         ]
     }

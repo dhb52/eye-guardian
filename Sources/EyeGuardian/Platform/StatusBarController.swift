@@ -5,6 +5,8 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private let model: AppModel
     private let statusItem: NSStatusItem
     private var lastTitle = ""
+    private var lastIconPercent: Int?
+    private var lastIconSize: StatusIconSize?
 
     init(model: AppModel) {
         self.model = model
@@ -12,11 +14,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         super.init()
 
         if let button = statusItem.button {
-            let image = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: L10n.t("AppName"))
-            image?.isTemplate = true
-            button.image = image
+            button.image = StatusBarIconRenderer.image(fatigue: model.fatiguePercent,
+                                                       size: model.settings.statusIconSize)
+            button.setAccessibilityLabel(L10n.t("AppName"))
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+            lastIconPercent = model.fatiguePercent
+            lastIconSize = model.settings.statusIconSize
         }
 
         let menu = NSMenu()
@@ -32,6 +36,12 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     func refresh() {
         let settings = model.settings
+        if lastIconPercent != model.fatiguePercent || lastIconSize != settings.statusIconSize {
+            lastIconPercent = model.fatiguePercent
+            lastIconSize = settings.statusIconSize
+            statusItem.button?.image = StatusBarIconRenderer.image(fatigue: model.fatiguePercent,
+                                                                   size: settings.statusIconSize)
+        }
         var parts: [String] = []
         if settings.statusShowFatiguePercent {
             parts.append("\(model.fatiguePercent)%")

@@ -26,6 +26,10 @@ struct AppSettings: Codable, Equatable {
     var statusShowScreenTimeHours: Bool = false
     var statusShowScreenTimeMinutes: Bool = false
     var statusShowReminderCount: Bool = false
+    var ringStyle: RingStyle = .solid
+    var ringPalette: RingPalette = .spectrum
+    var ringThickness: RingThickness = .regular
+    var statusIconSize: StatusIconSize = .medium
     var launchAtLogin: Bool = false
     var usageMode: UsageMode = .smart
     var detectMouse: Bool = true
@@ -40,6 +44,11 @@ struct AppSettings: Codable, Equatable {
     var showScreenTimeOnPopup: Bool = true
     var rules: [BreakRule] = BreakRule.defaults
 
+    var detectionActive: Bool { usageMode == .smart }
+    var effectiveDetectMouse: Bool { detectionActive && detectMouse }
+    var effectiveDetectKeyboard: Bool { detectionActive && detectKeyboard }
+    var effectiveDetectScreenChanges: Bool { detectionActive && detectScreenChanges }
+
     static let `default` = AppSettings()
 
     init() {}
@@ -49,6 +58,7 @@ struct AppSettings: Codable, Equatable {
         case peakRepeatMinutes, preReminderNotification, playSoundAtBreakEnd, skipMode
         case showSkipButton, showDockIcon, showStatusBarIcon, statusShowFatiguePercent
         case statusShowScreenTimeHours, statusShowScreenTimeMinutes, statusShowReminderCount
+        case ringStyle, ringPalette, ringThickness, statusIconSize
         case launchAtLogin, usageMode, detectMouse, detectKeyboard, detectScreenChanges
         case movieMode, extraReminderEnabled, extraReminderHours, popupBackground
         case popupImagePath, popupText, showScreenTimeOnPopup, rules
@@ -72,6 +82,10 @@ struct AppSettings: Codable, Equatable {
         statusShowScreenTimeHours = (try? c.decodeIfPresent(Bool.self, forKey: .statusShowScreenTimeHours)) ?? d.statusShowScreenTimeHours
         statusShowScreenTimeMinutes = (try? c.decodeIfPresent(Bool.self, forKey: .statusShowScreenTimeMinutes)) ?? d.statusShowScreenTimeMinutes
         statusShowReminderCount = (try? c.decodeIfPresent(Bool.self, forKey: .statusShowReminderCount)) ?? d.statusShowReminderCount
+        ringStyle = (try? c.decodeIfPresent(RingStyle.self, forKey: .ringStyle)) ?? d.ringStyle
+        ringPalette = (try? c.decodeIfPresent(RingPalette.self, forKey: .ringPalette)) ?? d.ringPalette
+        ringThickness = (try? c.decodeIfPresent(RingThickness.self, forKey: .ringThickness)) ?? d.ringThickness
+        statusIconSize = (try? c.decodeIfPresent(StatusIconSize.self, forKey: .statusIconSize)) ?? d.statusIconSize
         launchAtLogin = (try? c.decodeIfPresent(Bool.self, forKey: .launchAtLogin)) ?? d.launchAtLogin
         usageMode = (try? c.decodeIfPresent(UsageMode.self, forKey: .usageMode)) ?? d.usageMode
         detectMouse = (try? c.decodeIfPresent(Bool.self, forKey: .detectMouse)) ?? d.detectMouse

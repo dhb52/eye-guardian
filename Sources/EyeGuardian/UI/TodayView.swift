@@ -57,7 +57,7 @@ struct TodayView: View {
                         .padding(.vertical, 10)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Theme.accent)
+                                .fill(Theme.accentDeep)
                         )
                         .foregroundStyle(.white)
                 }

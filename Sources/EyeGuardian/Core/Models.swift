@@ -128,3 +128,65 @@ enum ReminderDecision: Equatable {
 func clampValue<T: Comparable>(_ value: T, _ lower: T, _ upper: T) -> T {
     min(max(value, lower), upper)
 }
+
+enum RingStyle: String, Codable, CaseIterable, Identifiable {
+    case solid
+    case dotted
+
+    var id: String { rawValue }
+}
+
+enum RingPalette: String, Codable, CaseIterable, Identifiable {
+    case monochrome
+    case spectrum
+
+    var id: String { rawValue }
+}
+
+enum RingThickness: String, Codable, CaseIterable, Identifiable {
+    case thin
+    case regular
+    case thick
+
+    var id: String { rawValue }
+
+    var ringWidth: Double {
+        switch self {
+        case .thin: return 52
+        case .regular: return 72
+        case .thick: return 92
+        }
+    }
+
+    var dotDiameter: Double {
+        switch self {
+        case .thin: return 32
+        case .regular: return 41
+        case .thick: return 50
+        }
+    }
+
+    var dotCount: Int {
+        switch self {
+        case .thin: return 26
+        case .regular: return 22
+        case .thick: return 18
+        }
+    }
+}
+
+enum StatusIconSize: String, Codable, CaseIterable, Identifiable {
+    case small
+    case medium
+    case large
+
+    var id: String { rawValue }
+
+    var points: Double {
+        switch self {
+        case .small: return 14
+        case .medium: return 18
+        case .large: return 22
+        }
+    }
+}

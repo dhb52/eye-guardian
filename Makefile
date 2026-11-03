@@ -3,8 +3,7 @@
 all: bundle
 
 icon:
-	@mkdir -p build
-	@test -f build/icon-1024.png || swift scripts/gen-icon.swift build/icon-1024.png
+	./scripts/gen-icons.sh build
 
 build: icon
 	./scripts/build.sh

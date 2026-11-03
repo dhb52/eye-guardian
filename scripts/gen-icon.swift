@@ -1,66 +1,52 @@
 import AppKit
 
-let outputPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "icon-1024.png"
-let side: CGFloat = 1024
-let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
-    let inset: CGFloat = 24
-    let body = rect.insetBy(dx: inset, dy: inset)
-    let path = NSBezierPath(roundedRect: body, xRadius: 112, yRadius: 112)
+@main
+enum GenIcon {
+    /// Brand state: part-filled arc so the static icon shows both fill and track.
+    static let brandFatigue: CGFloat = 0.35
 
-    let gradient = NSGradient(colors: [
-        NSColor(calibratedRed: 0.43, green: 0.36, blue: 0.96, alpha: 1),
-        NSColor(calibratedRed: 0.24, green: 0.16, blue: 0.62, alpha: 1),
-    ])
-    gradient?.draw(in: path, angle: -90)
+    static let entries: [(name: String, pixels: Int)] = [
+        ("icon_16x16", 16), ("icon_16x16@2x", 32),
+        ("icon_32x32", 32), ("icon_32x32@2x", 64),
+        ("icon_128x128", 128), ("icon_128x128@2x", 256),
+        ("icon_256x256", 256), ("icon_256x256@2x", 512),
+        ("icon_512x512", 512), ("icon_512x512@2x", 1024),
+    ]
 
-    let center = NSPoint(x: side / 2, y: side / 2 + 40)
-    let radius: CGFloat = 250
+    static func main() throws {
+        let arguments = Array(CommandLine.arguments.dropFirst())
+        let iconset = arguments.count > 0 ? arguments[0] : "build/AppIcon.iconset"
+        let preview = arguments.count > 1 ? arguments[1] : nil
 
-    NSColor.white.withAlphaComponent(0.22).setStroke()
-    let track = NSBezierPath()
-    track.appendArc(withCenter: center, radius: radius, startAngle: 0, endAngle: 360)
-    track.lineWidth = 26
-    track.stroke()
+        let directory = URL(fileURLWithPath: iconset)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
-    NSColor.white.setStroke()
-    let ring = NSBezierPath()
-    ring.appendArc(withCenter: center, radius: radius, startAngle: 90, endAngle: -270, clockwise: true)
-    ring.lineWidth = 26
-    ring.stroke()
+        var cache: [Int: Data] = [:]
+        for entry in entries {
+            let data: Data
+            if let cached = cache[entry.pixels] {
+                data = cached
+            } else {
+                let look = IconArtwork.Look(fatigue: brandFatigue,
+                                            compact: entry.pixels <= 32,
+                                            showsNumber: false,
+                                            style: .solid,
+                                            palette: .spectrum,
+                                            thickness: .regular,
+                                            dark: true)
+                guard let rendered = IconArtwork.png(pixels: entry.pixels, look: look) else {
+                    FileHandle.standardError.write(Data("failed to render \(entry.pixels)px icon\n".utf8))
+                    exit(1)
+                }
+                cache[entry.pixels] = rendered
+                data = rendered
+            }
+            try data.write(to: directory.appendingPathComponent("\(entry.name).png"))
+        }
 
-    let eyeCenter = NSPoint(x: side / 2, y: side / 2 + 30)
-    let eyeWidth: CGFloat = 400
-    let eyeHeight: CGFloat = 220
-    let left = NSPoint(x: eyeCenter.x - eyeWidth / 2, y: eyeCenter.y)
-    let right = NSPoint(x: eyeCenter.x + eyeWidth / 2, y: eyeCenter.y)
-
-    let eye = NSBezierPath()
-    eye.move(to: left)
-    eye.curve(to: right,
-              controlPoint1: NSPoint(x: eyeCenter.x - 110, y: eyeCenter.y + eyeHeight / 2),
-              controlPoint2: NSPoint(x: eyeCenter.x + 110, y: eyeCenter.y + eyeHeight / 2))
-    eye.curve(to: left,
-              controlPoint1: NSPoint(x: eyeCenter.x + 110, y: eyeCenter.y - eyeHeight / 2),
-              controlPoint2: NSPoint(x: eyeCenter.x - 110, y: eyeCenter.y - eyeHeight / 2))
-    eye.lineWidth = 30
-    eye.lineJoinStyle = .round
-    eye.lineCapStyle = .round
-    NSColor.white.setStroke()
-    eye.stroke()
-
-    let pupil = NSBezierPath(ovalIn: NSRect(x: eyeCenter.x - 58, y: eyeCenter.y - 58,
-                                            width: 116, height: 116))
-    NSColor.white.setFill()
-    pupil.fill()
-
-    return true
+        if let preview, let data = cache[1024] {
+            try? data.write(to: URL(fileURLWithPath: preview))
+        }
+        print("wrote \(directory.path)")
+    }
 }
-
-guard let tiff = image.tiffRepresentation,
-      let rep = NSBitmapImageRep(data: tiff),
-      let png = rep.representation(using: .png, properties: [:]) else {
-    FileHandle.standardError.write(Data("failed to render icon\n".utf8))
-    exit(1)
-}
-try png.write(to: URL(fileURLWithPath: outputPath))
-print("wrote \(outputPath)")

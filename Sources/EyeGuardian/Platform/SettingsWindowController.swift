@@ -5,7 +5,7 @@ import SwiftUI
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     init(model: AppModel) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 780, height: 600),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -15,8 +15,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.contentViewController = NSHostingController(
             rootView: SettingsView().environmentObject(model)
         )
-        window.setContentSize(NSSize(width: 680, height: 760))
-        window.minSize = NSSize(width: 620, height: 600)
+        window.setContentSize(NSSize(width: 780, height: 600))
+        window.minSize = NSSize(width: 760, height: 580)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()
