@@ -1,27 +1,16 @@
 import SwiftUI
 
 struct SettingsPane<Content: View>: View {
-    var header: AnyView?
     @ViewBuilder var content: Content
 
-    init(header: AnyView? = nil, @ViewBuilder content: () -> Content) {
-        self.header = header
+    init(@ViewBuilder content: () -> Content) {
         self.content = content()
     }
 
     var body: some View {
-        let pinned: PinnedScrollableViews = header == nil ? [] : [.sectionHeaders]
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 22, pinnedViews: pinned) {
-                if let header {
-                    Section {
-                        content
-                    } header: {
-                        header.background(.regularMaterial)
-                    }
-                } else {
-                    content
-                }
+            LazyVStack(alignment: .leading, spacing: 22) {
+                content
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 32)

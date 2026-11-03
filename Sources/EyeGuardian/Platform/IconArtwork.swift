@@ -182,10 +182,10 @@ enum IconArtwork {
 
     private static func drawMenuBarGlyph(fatigue: CGFloat, look: Look) {
         guard let context = NSGraphicsContext.current else { return }
-        let template = look.palette == .monochrome
-        let ink: NSColor = template ? .black : (look.dark ? .white : .black)
-        let fill = template ? ink : spectrum(fatigue)
-        let track = ink.withAlphaComponent(template ? 0.35 : 0.18)
+        let monochrome = look.palette == .monochrome
+        let ink: NSColor = look.dark ? .white : .black
+        let fill = monochrome ? ink : spectrum(fatigue)
+        let track = ink.withAlphaComponent(monochrome ? 0.35 : 0.18)
 
         context.saveGraphicsState()
         context.cgContext.translateBy(x: center.x, y: center.y)

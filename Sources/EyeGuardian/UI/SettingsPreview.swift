@@ -2,10 +2,14 @@ import AppKit
 import SwiftUI
 
 struct StatusPreviewBar: View {
+    @Binding var darkOverride: Bool?
     @EnvironmentObject private var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
 
     private var settings: AppSettings { model.settings }
+    private var isDark: Bool { darkOverride ?? (colorScheme == .dark) }
+    private var barInk: Color { isDark ? .white : Color(white: 0.10) }
+    private var barFill: Color { isDark ? Color(white: 0.13) : Color(white: 0.97) }
 
     private var statusText: String {
         StatusBarTextFormatter.parts(fatiguePercent: model.fatiguePercent,
@@ -16,14 +20,13 @@ struct StatusPreviewBar: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 14) {
-                menuBarMock
-                dockPreview
-            }
+        VStack(spacing: 10) {
+            menuBarMock
             Text(L10n.t("LivePreviewCaption"))
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
         .padding(.vertical, 10)
     }
@@ -43,18 +46,14 @@ struct StatusPreviewBar: View {
                 .font(.system(size: 12))
             Text("9:41")
                 .font(.system(size: 12).monospacedDigit())
+            themeToggle
         }
+        .foregroundStyle(barInk)
         .padding(.horizontal, 12)
         .frame(height: 34)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 9)
-                .fill(Color(nsColor: .controlBackgroundColor))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 9)
-                .strokeBorder(Color.primary.opacity(0.08))
-        )
+        .background(RoundedRectangle(cornerRadius: 9).fill(barFill))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(barInk.opacity(0.10)))
     }
 
     @ViewBuilder
@@ -79,7 +78,7 @@ struct StatusPreviewBar: View {
                 Text(L10n.t("StatusIconHidden"))
             }
             .font(.system(size: 11))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(barInk.opacity(0.65))
         }
     }
 
@@ -89,38 +88,28 @@ struct StatusPreviewBar: View {
                                     style: settings.ringStyle,
                                     palette: settings.ringPalette,
                                     thickness: settings.ringThickness,
-                                    dark: colorScheme == .dark,
+                                    dark: isDark,
                                     template: false)
     }
 
-    private var dockPreview: some View {
-        VStack(spacing: 4) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.primary.opacity(0.08))
-                if settings.showDockIcon {
-                    Image(nsImage: DockIconRenderer.image(fatigue: model.fatiguePercent,
-                                                          style: settings.ringStyle,
-                                                          palette: settings.ringPalette,
-                                                          thickness: settings.ringThickness,
-                                                          dark: colorScheme == .dark))
-                        .resizable()
-                        .interpolation(.high)
-                        .frame(width: 44, height: 44)
-                } else {
-                    Image(systemName: "eye.slash")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.secondary)
-                        .opacity(0.45)
-                }
+    private var themeToggle: some View {
+        Button {
+            darkOverride = !isDark
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: isDark ? "moon.fill" : "sun.max.fill")
+                    .font(.system(size: 10.5, weight: .semibold))
+                Text(L10n.t(isDark ? "Dark" : "Light"))
+                    .font(.system(size: 11, weight: .medium))
             }
-            .frame(width: 54, height: 54)
-            Text(L10n.t("StatusPlacementDock"))
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+            .foregroundStyle(barInk)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(Capsule().fill(barInk.opacity(isDark ? 0.16 : 0.08)))
+            .contentShape(Capsule())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.t("PreviewTheme"))
     }
 }
 

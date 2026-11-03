@@ -204,7 +204,8 @@
 "PointsFormat" = "%d pt";
 "StatusIconHidden" = "图标已隐藏";
 "PreviewMenuBarApp" = "访达";
-"LivePreviewCaption" = "实时预览 · 下方调整立即生效";
+"LivePreviewCaption" = "实时预览 · 在下方调整设置，立即查看效果";
+"PreviewTheme" = "预览外观";
 "FatigueThresholdHint" = "持续使用多久后疲劳值达到 100%。";
 "RestDurationHint" = "单次休息时长，结束后疲劳值重新累积。";
 "ReminderIntervalHint" = "继续使用电脑时提醒的重复间隔。";

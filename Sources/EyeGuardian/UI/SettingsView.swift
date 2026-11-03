@@ -108,17 +108,20 @@ struct SettingsView: View {
     // MARK: - Status Bar
 
     private var statusBarPane: some View {
-        SettingsPane(header: AnyView(StatusPreviewBar())) {
-            VStack(alignment: .leading, spacing: 10) {
-                SettingsSectionHeader(L10n.t("StatusBarSection"))
-                SettingsCard {
-                    placementRow
-                    SettingsDivider()
-                    fatiguePercentRow
-                    SettingsDivider()
-                    screenTimeRow
-                    SettingsDivider()
-                    reminderCountRow
+        SettingsPane {
+            VStack(alignment: .leading, spacing: 22) {
+                StatusPreviewBar(darkOverride: $local.previewDarkOverride)
+                VStack(alignment: .leading, spacing: 10) {
+                    SettingsSectionHeader(L10n.t("StatusBarSection"))
+                    SettingsCard {
+                        placementRow
+                        SettingsDivider()
+                        fatiguePercentRow
+                        SettingsDivider()
+                        screenTimeRow
+                        SettingsDivider()
+                        reminderCountRow
+                    }
                 }
             }
         }
@@ -382,8 +385,9 @@ struct SettingsView: View {
     // MARK: - Appearance
 
     private var appearancePane: some View {
-        SettingsPane(header: AnyView(StatusPreviewBar())) {
+        SettingsPane {
             VStack(alignment: .leading, spacing: 22) {
+                StatusPreviewBar(darkOverride: $local.previewDarkOverride)
                 iconSection
                 popupSection
             }
@@ -835,6 +839,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 @MainActor
 private final class SettingsLocalState: ObservableObject {
     @Published var selectedTab: SettingsTab = .general
+    @Published var previewDarkOverride: Bool?
     @Published var showingHelp = false
     @Published var showingResetAlert = false
     @Published var alertMessage = ""

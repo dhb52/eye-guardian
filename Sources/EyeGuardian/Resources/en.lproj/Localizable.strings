@@ -204,7 +204,8 @@
 "PointsFormat" = "%d pt";
 "StatusIconHidden" = "Icon hidden";
 "PreviewMenuBarApp" = "Finder";
-"LivePreviewCaption" = "Live Preview · Changes below apply immediately";
+"LivePreviewCaption" = "Live Preview · Adjust settings below to see changes immediately";
+"PreviewTheme" = "Preview appearance";
 "FatigueThresholdHint" = "Continuous use before fatigue reaches 100%.";
 "RestDurationHint" = "Length of one break before fatigue starts rising again.";
 "ReminderIntervalHint" = "How often the reminder repeats while you keep working.";
