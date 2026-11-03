@@ -6,9 +6,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var languageObserver: NSObjectProtocol?
 
     init(model: AppModel) {
+        let contentSize = NSSize(width: 880, height: 620)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 920, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            contentRect: NSRect(origin: .zero, size: contentSize),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -19,8 +20,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         window.contentViewController = NSHostingController(
             rootView: SettingsView().environmentObject(model)
         )
-        window.minSize = NSSize(width: 880, height: 620)
-        window.setContentSize(NSSize(width: 920, height: 700))
+        window.setContentSize(contentSize)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.center()

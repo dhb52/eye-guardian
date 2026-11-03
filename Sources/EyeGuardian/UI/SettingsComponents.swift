@@ -20,6 +20,33 @@ struct SettingsPane<Content: View>: View {
     }
 }
 
+struct SettingsPaneWithHeader<Header: View, Content: View>: View {
+    private let header: Header
+    private let content: Content
+
+    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
+        self.header = header()
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            header
+                .padding(.horizontal, 28)
+                .padding(.top, 18)
+                .padding(.bottom, 12)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 22) {
+                    content
+                }
+                .padding(.horizontal, 28)
+                .padding(.bottom, 32)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct SettingsSectionHeader: View {
     let title: String
 

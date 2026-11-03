@@ -108,20 +108,19 @@ struct SettingsView: View {
     // MARK: - Status Bar
 
     private var statusBarPane: some View {
-        SettingsPane {
-            VStack(alignment: .leading, spacing: 22) {
-                StatusPreviewBar(darkOverride: $local.previewDarkOverride)
-                VStack(alignment: .leading, spacing: 10) {
-                    SettingsSectionHeader(L10n.t("StatusBarSection"))
-                    SettingsCard {
-                        placementRow
-                        SettingsDivider()
-                        fatiguePercentRow
-                        SettingsDivider()
-                        screenTimeRow
-                        SettingsDivider()
-                        reminderCountRow
-                    }
+        SettingsPaneWithHeader {
+            StatusPreviewBar(darkOverride: $local.previewDarkOverride)
+        } content: {
+            VStack(alignment: .leading, spacing: 10) {
+                SettingsSectionHeader(L10n.t("StatusBarSection"))
+                SettingsCard {
+                    placementRow
+                    SettingsDivider()
+                    fatiguePercentRow
+                    SettingsDivider()
+                    screenTimeRow
+                    SettingsDivider()
+                    reminderCountRow
                 }
             }
         }
@@ -385,9 +384,10 @@ struct SettingsView: View {
     // MARK: - Appearance
 
     private var appearancePane: some View {
-        SettingsPane {
+        SettingsPaneWithHeader {
+            StatusPreviewBar(darkOverride: $local.previewDarkOverride)
+        } content: {
             VStack(alignment: .leading, spacing: 22) {
-                StatusPreviewBar(darkOverride: $local.previewDarkOverride)
                 iconSection
                 popupSection
             }
