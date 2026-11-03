@@ -70,7 +70,9 @@ private func bucketFunction(_ context: OpaquePointer?,
     sqlite3_result_int64(context, Int64(start.timeIntervalSince1970.rounded(.down)))
 }
 
-final class EventStore {
+/// Every entry point takes `lock` before touching the database, so instances can
+/// be handed to background queues.
+final class EventStore: @unchecked Sendable {
     private var db: OpaquePointer?
     private let lock = NSLock()
     private let calendar: Calendar

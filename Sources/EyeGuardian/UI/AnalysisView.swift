@@ -81,9 +81,9 @@ private final class AnalysisState: ObservableObject {
         loading = true
         let range = self.range
         let granularity = self.granularity
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let result = store.analysis(range: range, granularity: granularity, now: Date())
-            Task { @MainActor [weak self] in
+            Task { @MainActor in
                 self?.data = result
                 self?.loading = false
             }
