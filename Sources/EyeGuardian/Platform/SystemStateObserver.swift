@@ -11,6 +11,7 @@ final class SystemStateObserver {
 
     func start() {
         guard distributedObservers.isEmpty else { return }
+        refreshLockState()
         let distributed = DistributedNotificationCenter.default()
         distributedObservers.append(
             distributed.addObserver(forName: NSNotification.Name("com.apple.screenIsLocked"),
@@ -37,6 +38,7 @@ final class SystemStateObserver {
                                   object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in
                     self?.isAsleep = true
+                    self?.refreshLockState()
                     self?.onChange?()
                 }
             }
@@ -46,6 +48,7 @@ final class SystemStateObserver {
                                   object: nil, queue: .main) { [weak self] _ in
                 Task { @MainActor in
                     self?.isAsleep = false
+                    self?.refreshLockState()
                     self?.onChange?()
                 }
             }
@@ -59,5 +62,14 @@ final class SystemStateObserver {
         let workspace = NSWorkspace.shared.notificationCenter
         workspaceObservers.forEach { workspace.removeObserver($0) }
         workspaceObservers.removeAll()
+    }
+
+    func refreshLockState() {
+        isLocked = Self.isScreenLocked
+    }
+
+    private static var isScreenLocked: Bool {
+        guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
+        return (session["CGSSessionScreenIsLocked"] as? NSNumber)?.boolValue ?? false
     }
 }

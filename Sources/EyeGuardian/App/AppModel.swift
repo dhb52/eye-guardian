@@ -159,6 +159,7 @@ final class AppModel: ObservableObject {
             object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
+                self?.systemState.refreshLockState()
                 self?.permissionGuide.hide()
                 self?.refreshPermissions()
             }
@@ -300,6 +301,7 @@ final class AppModel: ObservableObject {
         if now.timeIntervalSince(lastSampleAt) >= 60 {
             store.insertSample(at: now, fatigue: engine.percent, isUsing: screenActive)
             lastSampleAt = now
+            systemState.refreshLockState()
             refreshTodayStats()
         }
 
