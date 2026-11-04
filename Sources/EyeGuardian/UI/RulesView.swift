@@ -8,6 +8,8 @@ struct RulesView: View {
             VStack(alignment: .leading, spacing: 16) {
                 SectionTitle(title: L10n.t("NavRules"), subtitle: nil)
 
+                defaultTimingCard
+
                 ForEach(Array(model.settings.rules.enumerated()), id: \.element.id) { index, rule in
                     ruleCard(index: index, rule: rule)
                 }
@@ -19,6 +21,58 @@ struct RulesView: View {
             }
             .padding(24)
         }
+    }
+
+    private var defaultTimingCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(L10n.t("DefaultTiming"))
+                    .font(.headline)
+                Text(L10n.t("DefaultTimingHint"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: defaultWorkBinding, in: 5...180, step: 5) {
+                        HStack {
+                            Text(L10n.f("WorkForFormat", model.settings.fatigueThresholdMinutes))
+                            Spacer()
+                        }
+                    }
+                    Text(L10n.t("FatigueThresholdHint"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: defaultRestBinding, in: 1...60) {
+                        HStack {
+                            Text(L10n.f("BreakForFormat", model.settings.restMinutes))
+                            Spacer()
+                        }
+                    }
+                    Text(L10n.t("RestDurationHint"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+            }
+        }
+    }
+
+    private var defaultWorkBinding: Binding<Int> {
+        Binding(
+            get: { model.settings.fatigueThresholdMinutes },
+            set: { model.settings.fatigueThresholdMinutes = $0 }
+        )
+    }
+
+    private var defaultRestBinding: Binding<Int> {
+        Binding(
+            get: { model.settings.restMinutes },
+            set: { model.settings.restMinutes = $0 }
+        )
     }
 
     private func ruleCard(index: Int, rule: BreakRule) -> some View {

@@ -28,6 +28,8 @@
 "From" = "开始";
 "To" = "结束";
 "RuleFormat" = "规则 %d";
+"DefaultTiming" = "默认时长";
+"DefaultTimingHint" = "在所有已启用规则的时间范围之外使用。";
 "PermissionAccessibility" = "辅助功能";
 "PermissionScreenRecording" = "屏幕录制";
 "PermissionNotifications" = "通知";
@@ -207,7 +209,7 @@
 "LivePreviewCaption" = "实时预览 · 在下方调整设置，立即查看效果";
 "PreviewTheme" = "预览外观";
 "FatigueThresholdHint" = "持续使用多久后疲劳值达到 100%。";
-"RestDurationHint" = "单次休息时长，结束后疲劳值重新累积。";
+"RestDurationHint" = "单次休息时长；完整休息一次后疲劳值归零。";
 "ReminderIntervalHint" = "继续使用电脑时提醒的重复间隔。";
 "PreReminderHint" = "弹窗出现前 1 分钟先发通知。";
 "PlaySoundHint" = "休息结束时播放提示音。";

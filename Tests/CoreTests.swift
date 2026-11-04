@@ -143,7 +143,7 @@ enum CoreTestsMain {
         var engine = FatigueEngine()
         for _ in 0..<40 {
             engine.tick(deltaSeconds: 60, screenActive: true, resting: false,
-                        workMinutes: 40)
+                        workMinutes: 40, restMinutes: 5)
         }
         runner.check("40 work minutes fill fatigue to 100", engine.fatigue >= 99.999)
         runner.check("engine percent rounds to 100", engine.percent == 100)
@@ -151,33 +151,67 @@ enum CoreTestsMain {
         engine.setFatigue(100)
         for _ in 0..<5 {
             engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
-                        workMinutes: 40)
+                        workMinutes: 40, restMinutes: 5)
         }
         runner.check("5 rest minutes empty fatigue", abs(engine.fatigue) < 0.0001)
 
         engine.setFatigue(100)
-        engine.tick(deltaSeconds: 60, screenActive: false, resting: true, workMinutes: 40)
+        engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
+                    workMinutes: 40, restMinutes: 5)
         runner.check("one rest minute removes twenty percent", abs(engine.fatigue - 80) < 0.0001)
 
         engine.setFatigue(100)
-        engine.applyRest(minutes: 2)
+        engine.applyRest(minutes: 2, restMinutes: 5)
         runner.check("two rest minutes remove forty percent", abs(engine.fatigue - 60) < 0.0001)
-        engine.applyRest(minutes: 10)
+        engine.applyRest(minutes: 10, restMinutes: 5)
         runner.check("applied rest never drops below zero", engine.fatigue == 0)
 
         engine.setFatigue(10)
         engine.tick(deltaSeconds: 3600, screenActive: false, resting: true,
-                    workMinutes: 40)
+                    workMinutes: 40, restMinutes: 5)
         runner.check("fatigue never drops below zero", engine.fatigue == 0)
 
         engine.tick(deltaSeconds: 3600, screenActive: true, resting: false,
-                    workMinutes: 5)
+                    workMinutes: 5, restMinutes: 5)
         runner.check("fatigue never exceeds one hundred", engine.fatigue == 100)
 
         engine.setFatigue(50)
         engine.tick(deltaSeconds: 120, screenActive: false, resting: false,
-                    workMinutes: 40)
+                    workMinutes: 40, restMinutes: 5)
         runner.check("idle without resting holds fatigue", abs(engine.fatigue - 50) < 0.0001)
+
+        engine.setFatigue(100)
+        engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
+                    workMinutes: 40, restMinutes: 2)
+        runner.check("one minute at a two-minute rest removes fifty percent",
+                     abs(engine.fatigue - 50) < 0.0001)
+        engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
+                    workMinutes: 40, restMinutes: 2)
+        runner.check("two minutes at a two-minute rest empty fatigue",
+                     abs(engine.fatigue) < 0.0001)
+
+        engine.setFatigue(100)
+        engine.applyRest(minutes: 2, restMinutes: 2)
+        runner.check("a completed two-minute break empties fatigue", engine.fatigue == 0)
+
+        let cycleRule = BreakRule(id: 0, isEnabled: true,
+                                  startMinutes: 9 * 60, endMinutes: 18 * 60,
+                                  workMinutes: 40, restMinutes: 2)
+        let cycleTiming = RuleResolver.effective(
+            now: makeDate(2026, 11, 3, 10, 0),
+            rules: [cycleRule],
+            fallbackWork: 30, fallbackRest: 2,
+            calendar: utc
+        )
+        var cycle = FatigueEngine()
+        for _ in 0..<40 {
+            cycle.tick(deltaSeconds: 60, screenActive: true, resting: false,
+                       workMinutes: cycleTiming.workMinutes,
+                       restMinutes: cycleTiming.restMinutes)
+        }
+        runner.check("rule work fills fatigue in forty minutes", cycle.fatigue >= 99.999)
+        cycle.applyRest(minutes: 2, restMinutes: cycleTiming.restMinutes)
+        runner.check("a two-minute rule break empties fatigue", cycle.fatigue == 0)
     }
 
     private static func testRestDetector(_ runner: TestRunner) {

@@ -270,7 +270,8 @@ final class AppModel: ObservableObject {
             engine.tick(deltaSeconds: dt,
                         screenActive: screenActive,
                         resting: resting,
-                        workMinutes: timing.workMinutes)
+                        workMinutes: timing.workMinutes,
+                        restMinutes: timing.restMinutes)
         }
 
         if abs(engine.fatigue - fatigue) > 0.0001 {
@@ -482,7 +483,8 @@ final class AppModel: ObservableObject {
         guard let session = breakSession else { return }
         store.insertAlertFinish(at: Date(), duration: TimeInterval(session.totalSeconds))
         scheduler.breakCompleted(at: Date())
-        engine.applyRest(minutes: Double(session.totalSeconds) / 60.0)
+        engine.applyRest(minutes: Double(session.totalSeconds) / 60.0,
+                         restMinutes: max(1, session.totalSeconds / 60))
         fatigue = engine.fatigue
         playSound()
         breakSession = nil
