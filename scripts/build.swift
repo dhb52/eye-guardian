@@ -180,11 +180,17 @@ func buildApp() throws {
     try fileManager.createDirectory(at: out, withIntermediateDirectories: true)
     try generateIcons()
 
+    // SwiftPM's link step records the deployment target as the linked SDK, which makes macOS render the
+    // legacy appearance; pass the real SDK version so the binary matches a plain `swiftc` build.
+    let sdkVersion = try run("xcrun", ["--show-sdk-version"], captureOutput: true)
+    let platform = ["-Xlinker", "-platform_version", "-Xlinker", "macos",
+                    "-Xlinker", deployTarget, "-Xlinker", sdkVersion]
+
     var slices: [URL] = []
     for triple in triples {
         let arch = String(triple.prefix { $0 != "-" })
         let scratch = out.appendingPathComponent("spm/\(arch)")
-        let base = ["build", "-c", "release", "--scratch-path", scratch.path, "--triple", triple]
+        let base = ["build", "-c", "release", "--scratch-path", scratch.path, "--triple", triple] + platform
         try run("swift", base)
         let binDir = lastLine(of: try run("swift", base + ["--show-bin-path"], captureOutput: true))
         let slice = out.appendingPathComponent("EyeGuardian-\(arch)")
