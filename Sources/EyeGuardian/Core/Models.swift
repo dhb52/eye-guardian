@@ -59,6 +59,7 @@ struct BreakRule: Codable, Identifiable, Equatable {
     var endMinutes: Int
     var workMinutes: Int
     var restMinutes: Int
+    var repeatMinutes: Int
 
     func contains(minuteOfDay: Int) -> Bool {
         if startMinutes == endMinutes { return false }
@@ -71,9 +72,9 @@ struct BreakRule: Codable, Identifiable, Equatable {
     static var defaults: [BreakRule] {
         [
             BreakRule(id: 0, isEnabled: true, startMinutes: 9 * 60, endMinutes: 18 * 60,
-                      workMinutes: 40, restMinutes: 5),
+                      workMinutes: 40, restMinutes: 5, repeatMinutes: 5),
             BreakRule(id: 1, isEnabled: false, startMinutes: 9 * 60, endMinutes: 18 * 60,
-                      workMinutes: 25, restMinutes: 5),
+                      workMinutes: 25, restMinutes: 5, repeatMinutes: 5),
         ]
     }
 }
@@ -122,6 +123,7 @@ struct TodayStats: Equatable {
 struct ResolvedTiming: Equatable {
     let workMinutes: Int
     let restMinutes: Int
+    let repeatMinutes: Int
 }
 
 enum ReminderDecision: Equatable {

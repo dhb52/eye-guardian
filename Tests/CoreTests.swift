@@ -68,6 +68,21 @@ enum CoreTestsMain {
                      decode("{}")?.language == .system)
         runner.check("unknown language follows the system",
                      decode("{\"language\":\"klingon\"}")?.language == .system)
+        runner.check("legacy rule inherits the global repeat interval",
+                     decode("{\"notificationIntervalMinutes\":12,\"rules\":[{\"id\":0,\"isEnabled\":true,\"startMinutes\":540,\"endMinutes\":1080,\"workMinutes\":40,\"restMinutes\":1}]}")?
+                         .rules.first?.repeatMinutes == 12)
+        runner.check("legacy rules keep their durations",
+                     decode("{\"notificationIntervalMinutes\":12,\"rules\":[{\"id\":0,\"isEnabled\":true,\"startMinutes\":540,\"endMinutes\":1080,\"workMinutes\":40,\"restMinutes\":1}]}")?
+                         .rules.first?.workMinutes == 40)
+        runner.check("stored rule repeat interval is preserved",
+                     decode("{\"notificationIntervalMinutes\":12,\"rules\":[{\"id\":0,\"isEnabled\":true,\"startMinutes\":540,\"endMinutes\":1080,\"workMinutes\":40,\"restMinutes\":1,\"repeatMinutes\":9}]}")?
+                         .rules.first?.repeatMinutes == 9)
+        runner.check("rule repeat interval round-trips", {
+            var settings = AppSettings()
+            settings.rules[0].repeatMinutes = 9
+            guard let data = try? JSONEncoder().encode(settings) else { return false }
+            return (try? JSONDecoder().decode(AppSettings.self, from: data))?.rules.first?.repeatMinutes == 9
+        }())
     }
 
     private static func testStatusPresentation(_ runner: TestRunner) {
@@ -196,11 +211,11 @@ enum CoreTestsMain {
 
         let cycleRule = BreakRule(id: 0, isEnabled: true,
                                   startMinutes: 9 * 60, endMinutes: 18 * 60,
-                                  workMinutes: 40, restMinutes: 2)
+                                  workMinutes: 40, restMinutes: 2, repeatMinutes: 5)
         let cycleTiming = RuleResolver.effective(
             now: makeDate(2026, 11, 3, 10, 0),
             rules: [cycleRule],
-            fallbackWork: 30, fallbackRest: 2,
+            fallbackWork: 30, fallbackRest: 2, fallbackRepeat: 5,
             calendar: utc
         )
         var cycle = FatigueEngine()
@@ -240,38 +255,56 @@ enum CoreTestsMain {
     private static func testRuleResolver(_ runner: TestRunner) {
         let rules = [
             BreakRule(id: 0, isEnabled: true, startMinutes: 9 * 60, endMinutes: 18 * 60,
-                      workMinutes: 50, restMinutes: 6),
+                      workMinutes: 50, restMinutes: 6, repeatMinutes: 7),
             BreakRule(id: 1, isEnabled: false, startMinutes: 9 * 60, endMinutes: 18 * 60,
-                      workMinutes: 25, restMinutes: 5),
+                      workMinutes: 25, restMinutes: 5, repeatMinutes: 4),
         ]
 
         let inside = RuleResolver.effective(now: makeDate(2026, 11, 3, 12, 0), rules: rules,
-                                            fallbackWork: 40, fallbackRest: 5, calendar: utc)
-        runner.check("rule inside window wins", inside == ResolvedTiming(workMinutes: 50, restMinutes: 6))
+                                            fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 9,
+                                            calendar: utc)
+        runner.check("rule inside window wins",
+                     inside == ResolvedTiming(workMinutes: 50, restMinutes: 6, repeatMinutes: 7))
 
         let outside = RuleResolver.effective(now: makeDate(2026, 11, 3, 20, 0), rules: rules,
-                                             fallbackWork: 33, fallbackRest: 7, calendar: utc)
-        runner.check("outside window uses fallback", outside == ResolvedTiming(workMinutes: 33, restMinutes: 7))
+                                             fallbackWork: 33, fallbackRest: 7, fallbackRepeat: 9,
+                                             calendar: utc)
+        runner.check("outside window uses fallback",
+                     outside == ResolvedTiming(workMinutes: 33, restMinutes: 7, repeatMinutes: 9))
 
         let overnight = [
             BreakRule(id: 2, isEnabled: true, startMinutes: 22 * 60, endMinutes: 2 * 60,
-                      workMinutes: 30, restMinutes: 4)
+                      workMinutes: 30, restMinutes: 4, repeatMinutes: 5)
         ]
         let lateEvening = RuleResolver.effective(now: makeDate(2026, 11, 3, 23, 0), rules: overnight,
-                                                 fallbackWork: 40, fallbackRest: 5, calendar: utc)
+                                                 fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 5,
+                                                 calendar: utc)
         let earlyMorning = RuleResolver.effective(now: makeDate(2026, 11, 3, 1, 0), rules: overnight,
-                                                  fallbackWork: 40, fallbackRest: 5, calendar: utc)
+                                                  fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 5,
+                                                  calendar: utc)
         let midday = RuleResolver.effective(now: makeDate(2026, 11, 3, 12, 0), rules: overnight,
-                                            fallbackWork: 40, fallbackRest: 5, calendar: utc)
+                                            fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 5,
+                                            calendar: utc)
         runner.check("overnight rule matches evening", lateEvening.workMinutes == 30)
         runner.check("overnight rule matches early morning", earlyMorning.workMinutes == 30)
         runner.check("overnight rule misses midday", midday.workMinutes == 40)
 
         let clamped = RuleResolver.effective(now: makeDate(2026, 11, 3, 12, 0),
                                              rules: [BreakRule(id: 3, isEnabled: true, startMinutes: 0, endMinutes: 1439,
-                                                               workMinutes: 999, restMinutes: 0)],
-                                             fallbackWork: 40, fallbackRest: 5, calendar: utc)
-        runner.check("rule values are clamped", clamped == ResolvedTiming(workMinutes: 180, restMinutes: 1))
+                                                               workMinutes: 999, restMinutes: 0, repeatMinutes: 999)],
+                                             fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 5,
+                                             calendar: utc)
+        runner.check("rule values are clamped",
+                     clamped == ResolvedTiming(workMinutes: 180, restMinutes: 1, repeatMinutes: 60))
+        runner.check("rule repeat interval wins inside window", inside.repeatMinutes == 7)
+        runner.check("outside window uses fallback repeat interval", outside.repeatMinutes == 9)
+        runner.check("rule repeat interval is clamped", clamped.repeatMinutes == 60)
+
+        let clampedFallback = RuleResolver.effective(now: makeDate(2026, 11, 3, 12, 0),
+                                                    rules: [],
+                                                    fallbackWork: 40, fallbackRest: 5, fallbackRepeat: 0,
+                                                    calendar: utc)
+        runner.check("fallback repeat interval is clamped", clampedFallback.repeatMinutes == 1)
     }
 
     private static func testEffectiveSettings(_ runner: TestRunner) {

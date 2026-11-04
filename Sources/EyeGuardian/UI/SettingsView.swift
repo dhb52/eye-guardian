@@ -178,37 +178,8 @@ struct SettingsView: View {
     private var remindersPane: some View {
         SettingsPane {
             VStack(alignment: .leading, spacing: 22) {
-                timingSection
                 styleSection
                 extraReminderSection
-            }
-        }
-    }
-
-    private var timingSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SettingsSectionHeader(L10n.t("TimingSection"))
-            SettingsCard {
-                SettingsSliderRow(icon: "hourglass", tint: .orange,
-                                  title: L10n.t("FatigueThreshold"),
-                                  subtitle: L10n.t("FatigueThresholdHint"),
-                                  value: $model.settings.fatigueThresholdMinutes,
-                                  range: 5...180, step: 5,
-                                  valueText: "\(model.settings.fatigueThresholdMinutes) \(L10n.t("Mins"))")
-                SettingsDivider()
-                SettingsSliderRow(icon: "cup.and.saucer.fill", tint: .brown,
-                                  title: L10n.t("RestDuration"),
-                                  subtitle: L10n.t("RestDurationHint"),
-                                  value: $model.settings.restMinutes,
-                                  range: 1...60,
-                                  valueText: "\(model.settings.restMinutes) \(L10n.t("Mins"))")
-                SettingsDivider()
-                SettingsSliderRow(icon: "repeat", tint: .indigo,
-                                  title: L10n.t("PeakRepeat"),
-                                  subtitle: L10n.t("ReminderIntervalHint"),
-                                  value: $model.settings.notificationIntervalMinutes,
-                                  range: 1...60,
-                                  valueText: "\(model.settings.notificationIntervalMinutes) \(L10n.t("Mins"))")
             }
         }
     }

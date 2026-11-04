@@ -57,6 +57,17 @@ struct RulesView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: defaultRepeatBinding, in: 1...60) {
+                        HStack {
+                            Text(L10n.f("RepeatForFormat", model.settings.notificationIntervalMinutes))
+                            Spacer()
+                        }
+                    }
+                    Text(L10n.t("ReminderIntervalHint"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -72,6 +83,13 @@ struct RulesView: View {
         Binding(
             get: { model.settings.restMinutes },
             set: { model.settings.restMinutes = $0 }
+        )
+    }
+
+    private var defaultRepeatBinding: Binding<Int> {
+        Binding(
+            get: { model.settings.notificationIntervalMinutes },
+            set: { model.settings.notificationIntervalMinutes = $0 }
         )
     }
 
@@ -110,6 +128,13 @@ struct RulesView: View {
                         Spacer()
                     }
                 }
+
+                Stepper(value: repeatBinding(index), in: 1...60) {
+                    HStack {
+                        Text(L10n.f("RepeatForFormat", rule.repeatMinutes))
+                        Spacer()
+                    }
+                }
             }
         }
     }
@@ -132,6 +157,13 @@ struct RulesView: View {
         Binding(
             get: { model.settings.rules[index].restMinutes },
             set: { model.settings.rules[index].restMinutes = $0 }
+        )
+    }
+
+    private func repeatBinding(_ index: Int) -> Binding<Int> {
+        Binding(
+            get: { model.settings.rules[index].repeatMinutes },
+            set: { model.settings.rules[index].repeatMinutes = $0 }
         )
     }
 

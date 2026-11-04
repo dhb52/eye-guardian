@@ -104,6 +104,30 @@ struct AppSettings: Codable, Equatable {
         case popupImagePath, popupText, showScreenTimeOnPopup, rules
     }
 
+    private struct RuleDraft: Decodable {
+        var id: Int
+        var isEnabled: Bool
+        var startMinutes: Int
+        var endMinutes: Int
+        var workMinutes: Int
+        var restMinutes: Int
+        var repeatMinutes: Int?
+    }
+
+    private func decodeRules(from c: KeyedDecodingContainer<CodingKeys>,
+                            fallbackRepeat: Int) -> [BreakRule]? {
+        guard let drafts = try? c.decodeIfPresent([RuleDraft].self, forKey: .rules) else { return nil }
+        return drafts.map {
+            BreakRule(id: $0.id,
+                      isEnabled: $0.isEnabled,
+                      startMinutes: $0.startMinutes,
+                      endMinutes: $0.endMinutes,
+                      workMinutes: $0.workMinutes,
+                      restMinutes: $0.restMinutes,
+                      repeatMinutes: clampValue($0.repeatMinutes ?? fallbackRepeat, 1, 60))
+        }
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = AppSettings()
@@ -138,7 +162,7 @@ struct AppSettings: Codable, Equatable {
         popupImagePath = (try? c.decodeIfPresent(String.self, forKey: .popupImagePath)) ?? d.popupImagePath
         popupText = (try? c.decodeIfPresent(String.self, forKey: .popupText)) ?? d.popupText
         showScreenTimeOnPopup = (try? c.decodeIfPresent(Bool.self, forKey: .showScreenTimeOnPopup)) ?? d.showScreenTimeOnPopup
-        rules = (try? c.decodeIfPresent([BreakRule].self, forKey: .rules)) ?? d.rules
+        rules = decodeRules(from: c, fallbackRepeat: notificationIntervalMinutes) ?? d.rules
     }
 
     private static func decodeStatusIconSize(

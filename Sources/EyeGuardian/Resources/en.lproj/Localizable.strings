@@ -24,7 +24,7 @@
 "NoData" = "No data yet";
 "WorkForFormat" = "Work for %d min";
 "BreakForFormat" = "Break for %d min";
-"RestDuration" = "Rest duration";
+"RepeatForFormat" = "Repeat every %d min";
 "From" = "From";
 "To" = "To";
 "RuleFormat" = "Rule %d";
@@ -99,7 +99,6 @@
 "Notification" = "Notification";
 "MiniPopup" = "Mini popup";
 "FullScreen" = "Full-screen popup";
-"FatigueThreshold" = "Fatigue threshold";
 "PreReminder" = "Pre-break notification";
 "PlaySound" = "Play sound";
 "ShowSkipButton" = "Skip button";
@@ -107,7 +106,6 @@
 "SkipByButton" = "Skip by clicking the skip button";
 "SkipByChallenge" = "Solve a challenge after clicking the skip button";
 "CannotSkip" = "Cannot skip";
-"PeakRepeat" = "Repeat at peak";
 "EnableScreenTimeReminder" = "Screen time reminder";
 "ScreenTimeReach" = "Screen time threshold";
 "HoursSuffix" = "h";
@@ -145,7 +143,7 @@
 "CustomImage" = "Custom image";
 "Mins" = "min";
 "OK" = "OK";
-"RulesExplanation" = "Each rule applies its work and rest durations during its time window. Outside all windows, the global durations from Settings are used.";
+"RulesExplanation" = "Each rule applies its work, break, and repeat intervals during its time window. Outside all windows, the default timing is used. A completed break restores fatigue to zero.";
 
 "ScreenTime" = "Screen Time";
 "ScreenTimeHours" = "Screen Time (hours)";
@@ -180,7 +178,6 @@
 "StatusBarSection" = "Status Bar";
 "DetectionSection" = "Detection";
 "AboutSection" = "About";
-"TimingSection" = "Timing";
 "StyleSection" = "Style";
 "ExtraReminderSection" = "Extra reminder";
 "AppearancePopupSection" = "Break popup";

@@ -24,7 +24,7 @@
 "NoData" = "暂无数据";
 "WorkForFormat" = "工作 %d 分钟";
 "BreakForFormat" = "休息 %d 分钟";
-"RestDuration" = "休息时长";
+"RepeatForFormat" = "每 %d 分钟重复";
 "From" = "开始";
 "To" = "结束";
 "RuleFormat" = "规则 %d";
@@ -99,7 +99,6 @@
 "Notification" = "通知横幅";
 "MiniPopup" = "迷你弹窗";
 "FullScreen" = "全屏弹窗";
-"FatigueThreshold" = "疲劳阈值";
 "PreReminder" = "弹窗前提早通知";
 "PlaySound" = "播放提示音";
 "ShowSkipButton" = "跳过按钮";
@@ -107,7 +106,6 @@
 "SkipByButton" = "点击跳过按钮";
 "SkipByChallenge" = "点击跳过按钮并完成算术题";
 "CannotSkip" = "不能跳过";
-"PeakRepeat" = "峰值重复提醒";
 "EnableScreenTimeReminder" = "使用时长提醒";
 "ScreenTimeReach" = "使用时长阈值";
 "HoursSuffix" = "小时";
@@ -145,7 +143,7 @@
 "CustomImage" = "自定义图片";
 "Mins" = "分钟";
 "OK" = "好";
-"RulesExplanation" = "每条规则在其时间范围内生效；所有规则之外的时间使用设置中的全局时长。";
+"RulesExplanation" = "每条规则在其时间范围内生效，覆盖工作、休息与重复间隔；所有规则之外的时间使用默认值。完整休息一次后疲劳值归零。";
 
 "ScreenTime" = "使用时长";
 "ScreenTimeHours" = "时长（小时）";
@@ -180,7 +178,6 @@
 "StatusBarSection" = "状态栏";
 "DetectionSection" = "检测";
 "AboutSection" = "关于";
-"TimingSection" = "时长";
 "StyleSection" = "提示方式";
 "ExtraReminderSection" = "额外提醒";
 "AppearancePopupSection" = "休息弹窗";

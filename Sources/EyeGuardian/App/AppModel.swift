@@ -231,7 +231,8 @@ final class AppModel: ObservableObject {
             now: now,
             rules: settings.rules,
             fallbackWork: effective.workMinutes,
-            fallbackRest: effective.restMinutes
+            fallbackRest: effective.restMinutes,
+            fallbackRepeat: effective.notificationIntervalMinutes
         )
 
         let locked = systemState.isLocked
@@ -311,7 +312,7 @@ final class AppModel: ObservableObject {
                 finishBreak()
             }
         } else {
-            let config = schedulerConfig(effective)
+            let config = schedulerConfig(effective, repeatMinutes: timing.repeatMinutes)
             let decision = scheduler.evaluate(
                 now: now,
                 fatigue: engine.fatigue,
@@ -460,10 +461,11 @@ final class AppModel: ObservableObject {
             now: Date(),
             rules: settings.rules,
             fallbackWork: effective.workMinutes,
-            fallbackRest: effective.restMinutes
+            fallbackRest: effective.restMinutes,
+            fallbackRepeat: effective.notificationIntervalMinutes
         )
         let style: ReminderStyle = effective.reminderStyle == .notification ? .fullScreen : effective.reminderStyle
-        beginBreakSession(style: style, restMinutes: timing.restMinutes,
+        beginBreakSession(style: style, timing: timing,
                           effective: effective, triggeredByReminder: false)
     }
 
@@ -501,34 +503,35 @@ final class AppModel: ObservableObject {
             now: now,
             rules: settings.rules,
             fallbackWork: effective.workMinutes,
-            fallbackRest: effective.restMinutes
+            fallbackRest: effective.restMinutes,
+            fallbackRepeat: effective.notificationIntervalMinutes
         )
         if effective.reminderStyle == .notification {
             if !notificationsAvailable {
-                beginBreakSession(style: .miniPopup, restMinutes: timing.restMinutes,
+                beginBreakSession(style: .miniPopup, timing: timing,
                                   effective: effective, triggeredByReminder: true)
                 return
             }
             notifications.postBreakReminder()
             store.insertAlertStart(at: now, style: .notification)
-            scheduler.reminderShown(at: now, config: schedulerConfig(effective))
+            scheduler.reminderShown(at: now, config: schedulerConfig(effective, repeatMinutes: timing.repeatMinutes))
             refreshTodayStats()
         } else {
             beginBreakSession(style: effective.reminderStyle,
-                              restMinutes: timing.restMinutes,
+                              timing: timing,
                               effective: effective,
                               triggeredByReminder: true)
         }
     }
 
     private func beginBreakSession(style: ReminderStyle,
-                                   restMinutes: Int,
+                                   timing: ResolvedTiming,
                                    effective: EffectiveSettings,
                                    triggeredByReminder: Bool) {
         guard breakSession == nil else { return }
         let now = Date()
         let session = BreakSessionModel(
-            totalSeconds: clampValue(restMinutes, 1, 60) * 60,
+            totalSeconds: clampValue(timing.restMinutes, 1, 60) * 60,
             style: style,
             skipMode: effective.skipMode,
             showsSkipButton: settings.showSkipButton,
@@ -540,7 +543,7 @@ final class AppModel: ObservableObject {
         breakSession = session
         store.insertAlertStart(at: now, style: style)
         if triggeredByReminder {
-            scheduler.reminderShown(at: now, config: schedulerConfig(effective))
+            scheduler.reminderShown(at: now, config: schedulerConfig(effective, repeatMinutes: timing.repeatMinutes))
         }
         reminderWindows.show(session: session) { [weak self] in
             self?.skipBreak()
@@ -561,11 +564,11 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func schedulerConfig(_ effective: EffectiveSettings) -> BreakSchedulerConfig {
+    private func schedulerConfig(_ effective: EffectiveSettings, repeatMinutes: Int) -> BreakSchedulerConfig {
         BreakSchedulerConfig(
             style: effective.reminderStyle,
             preReminderEnabled: settings.preReminderNotification,
-            intervalMinutes: effective.notificationIntervalMinutes,
+            intervalMinutes: repeatMinutes,
             extraReminderEnabled: effective.extraReminderEnabled,
             extraReminderHours: effective.extraReminderHours
         )
