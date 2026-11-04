@@ -1,23 +1,24 @@
-.PHONY: all build bundle dmg test run icon clean
+.PHONY: all build dmg test run icon clean
 
-all: bundle
+all: build
 
 icon:
-	./scripts/gen-icons.sh build
+	swift scripts/build.swift icons
 
-build: icon
-	./scripts/build.sh
+build:
+	swift scripts/build.swift build
 
-bundle: build
-
-dmg: bundle
-	./scripts/make-dmg.sh
+TEST_PLUGIN_PATH := $(shell dirname "$$(xcrun -f swift-frontend)")/../lib/swift/host/plugins/testing
 
 test:
-	./scripts/test.sh
+	swift test --scratch-path build/spm/test \
+		-Xswiftc -plugin-path -Xswiftc "$(TEST_PLUGIN_PATH)"
 
-run: bundle
+dmg: build
+	swift scripts/build.swift dmg
+
+run: build
 	open "build/Eye Guardian.app"
 
 clean:
-	rm -rf build
+	rm -rf build .build

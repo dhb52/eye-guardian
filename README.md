@@ -6,17 +6,20 @@ Requires macOS 13.0 or later. Universal binary (arm64 + x86_64).
 
 ## Build
 
-No Xcode required; only the Command Line Tools.
+No Xcode required; only the Command Line Tools. The package layout is described by `Package.swift`; tests use Swift Testing, since the Command Line Tools ship no XCTest.
 
 ```sh
-make          # compile both architectures, assemble and ad-hoc sign the app
-make test     # build and run the core unit tests
-make run      # build and open the app
+swift build  # compile the current architecture in debug
+make         # universal release build, assemble and ad-hoc sign the app
+make test    # build and run the Core tests via swift test
+make run     # build and open the app
 make dmg      # build and package a drag-to-Applications disk image
 make clean
 ```
 
 The result is `build/Eye Guardian.app`.
+
+The Command Line Tools keep the Swift Testing macro plugin outside the plugin search path that SwiftPM passes, so `make test` adds `-plugin-path` for it; a bare `swift test` fails to expand `#expect`.
 
 ## Permissions
 
@@ -40,8 +43,10 @@ The settings window has eight sections: General, Status Bar, Reminders, Detectio
 
 ## Layout
 
+- `Package.swift` — SwiftPM package: `EyeGuardianKit` library + `EyeGuardian` executable.
 - `Sources/EyeGuardian/Core` — settings, fatigue math, scheduling, rules, SQLite store, CSV (Foundation + SQLite only).
 - `Sources/EyeGuardian/Platform` — event monitoring, permissions, status bar, Dock icon, windows.
 - `Sources/EyeGuardian/UI` — SwiftUI views.
-- `scripts/build.sh` — universal compile, bundle assembly, ad-hoc signing.
-- `scripts/make-dmg.sh` — package the built app into a UDZO disk image with an `/Applications` symlink.
+- `Sources/EyeGuardianApp` — the `@main` entry point.
+- `Tests` — Swift Testing suite for the Core layer.
+- `scripts/build.swift` — SwiftPM universal release build, icon generation, bundle assembly, signing and disk-image packaging (`swift scripts/build.swift build|icons|dmg`).
