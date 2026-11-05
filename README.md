@@ -19,7 +19,7 @@ make clean
 
 The result is `build/Eye Guardian.app`.
 
-The Command Line Tools keep the Swift Testing macro plugin outside the plugin search path that SwiftPM passes, so `make test` adds `-plugin-path` for it; a bare `swift test` fails to expand `#expect`.
+The Command Line Tools keep Swift Testing's macro plugin and `Testing.framework` outside the search paths SwiftPM passes, so `make test` adds `-plugin-path`, `-F` and an `-rpath` for `<toolchain>/Library/Developer/Frameworks`; a bare `swift test` fails with `no such module 'Testing'`. That framework's Foundation cross-import overlay is only a stub, so the same command turns cross-import overlays off — otherwise importing both `Foundation` and `Testing` fails with `no such module '_Testing_Foundation'`.
 
 ## Permissions
 
