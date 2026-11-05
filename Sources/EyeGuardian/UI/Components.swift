@@ -135,3 +135,15 @@ struct SidebarMaterial: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
+
+/// Sidebar backdrop: system vibrancy before 26, the legacy fill where AppKit already draws
+/// the sidebar surface.
+struct SidebarBackground: View {
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            Theme.sidebarFill.ignoresSafeArea()
+        } else {
+            SidebarMaterial().ignoresSafeArea()
+        }
+    }
+}

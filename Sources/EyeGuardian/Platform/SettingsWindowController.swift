@@ -9,16 +9,19 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let contentSize = NSSize(width: 880, height: 620)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: contentSize),
-            styleMask: [.titled, .closable, .miniaturizable],
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         super.init(window: window)
         window.title = L10n.t("Settings")
         window.titleVisibility = .hidden
-        window.titlebarSeparatorStyle = .none
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        window.titlebarAppearsTransparent = true
+        if #unavailable(macOS 26.0) {
+            window.titlebarSeparatorStyle = .none
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        }
         window.contentViewController = NSHostingController(
             rootView: SettingsView().environmentObject(model)
         )

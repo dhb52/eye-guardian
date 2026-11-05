@@ -9,6 +9,9 @@ enum Theme {
     static let settingsSidebarWidth: CGFloat = 216
     static let settingsCardCorner: CGFloat = 12
 
+    /// 26 and later keeps the semantic fill; earlier releases resolve it to a dark grey.
+    static let sidebarFill = Color(nsColor: .underPageBackgroundColor)
+
     /// Content surface behind the grouped cards.
     static let page = Color(nsColor: .controlBackgroundColor)
     /// Surface of a grouped card sitting on `page`.

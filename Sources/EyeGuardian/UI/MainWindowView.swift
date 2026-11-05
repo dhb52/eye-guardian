@@ -80,7 +80,7 @@ private struct SidebarView: View {
         }
         .padding(16)
         .frame(width: Theme.sidebarWidth)
-        .background { SidebarMaterial().ignoresSafeArea() }
+        .background { SidebarBackground() }
     }
 
     private var fatigueCard: some View {

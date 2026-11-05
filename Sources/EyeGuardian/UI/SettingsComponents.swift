@@ -302,10 +302,10 @@ struct SettingsSidebar: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
-        .padding(.top, 12)
+        .padding(.top, 44)
         .padding(.bottom, 16)
         .frame(width: Theme.settingsSidebarWidth)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background { SidebarMaterial().ignoresSafeArea() }
+        .background { SidebarBackground() }
     }
 }

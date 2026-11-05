@@ -4,6 +4,8 @@ A native macOS break-reminder app built with Swift, SwiftUI and AppKit. It watch
 
 Requires macOS 13.0 or later. Universal binary (arm64 + x86_64).
 
+The windows split by release: macOS 26 and later keeps the opaque titled window with the system sidebar fill, because the system already draws that surface; earlier releases draw the sidebar with `NSVisualEffectView(.sidebar)` under a transparent titlebar, since the semantic fill turns grey there.
+
 ## Build
 
 No Xcode required; only the Command Line Tools. The package layout is described by `Package.swift`; tests use Swift Testing, since the Command Line Tools ship no XCTest.
