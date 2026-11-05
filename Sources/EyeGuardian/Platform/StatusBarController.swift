@@ -184,7 +184,9 @@ final class StatusBarController: NSObject {
         }
         guard let button = statusItem.button else { return }
         button.highlight(true)
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        // The button shares its top edge with the screen, so anchoring any distance above y = 0 pushes
+        // the menu past the screen edge; macOS then clips the first item and adds a scroll chevron.
+        menu.popUp(positioning: nil, at: .zero, in: button)
         button.highlight(false)
     }
 
