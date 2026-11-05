@@ -342,9 +342,10 @@ func buildDiskImage() throws {
     )
 
     try? fileManager.removeItem(at: dmg)
-    try run("hdiutil", [
-        "create", "-volname", "Eye Guardian", "-srcfolder", stage.path,
-        "-fs", "HFS+", "-format", "UDZO", "-ov", dmg.path,
+    try run("diskutil", [
+        "image", "create", "from",
+        "--volumeName", "Eye Guardian", "--format", "UDZO",
+        stage.path, dmg.path,
     ])
     print("Built \(dmg.path)")
 }
