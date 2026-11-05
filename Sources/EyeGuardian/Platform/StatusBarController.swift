@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class StatusBarController: NSObject, NSMenuDelegate {
+final class StatusBarController: NSObject {
     private struct IconState: Equatable {
         let percent: Int
         let points: Int
@@ -13,6 +13,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     private let model: AppModel
     private let statusItem: NSStatusItem
+    private let mainMenu = NSMenu()
     private var lastTitle = ""
     private var lastIconState: IconState?
     private var appearanceObservation: NSKeyValueObservation?
@@ -26,15 +27,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             button.setAccessibilityLabel(L10n.t("AppName"))
             button.imagePosition = .imageLeft
             button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+            button.target = self
+            button.action = #selector(statusItemClicked(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             appearanceObservation = button.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
                 Task { @MainActor in self?.refresh() }
             }
         }
 
-        let menu = NSMenu()
-        menu.delegate = self
-        menu.autoenablesItems = false
-        statusItem.menu = menu
+        mainMenu.autoenablesItems = false
         refresh()
     }
 
@@ -77,15 +78,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
+    private func populateMainMenu() {
+        mainMenu.removeAllItems()
 
         let fatigue = NSMenuItem(
             title: "\(L10n.t("Fatigue")) \(model.fatiguePercent)%",
             action: nil, keyEquivalent: ""
         )
         fatigue.isEnabled = false
-        menu.addItem(fatigue)
+        mainMenu.addItem(fatigue)
 
         let screen = NSMenuItem(
             title: L10n.f("ScreenTimeTodayFormat",
@@ -93,42 +94,49 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             action: nil, keyEquivalent: ""
         )
         screen.isEnabled = false
-        menu.addItem(screen)
+        mainMenu.addItem(screen)
 
-        menu.addItem(.separator())
+        mainMenu.addItem(.separator())
 
         let start = NSMenuItem(title: L10n.t("StartBreakNow"),
                                action: #selector(startBreak), keyEquivalent: "b")
         start.target = self
         start.keyEquivalentModifierMask = [.control, .option, .command]
-        menu.addItem(start)
+        mainMenu.addItem(start)
 
         let open = NSMenuItem(title: L10n.t("OpenApp"),
                               action: #selector(openApp), keyEquivalent: "")
         open.target = self
-        menu.addItem(open)
+        mainMenu.addItem(open)
 
-        let snooze = NSMenuItem(title: L10n.t("PauseNotification"),
-                                action: nil, keyEquivalent: "")
-        snooze.submenu = makeSnoozeMenu()
-        menu.addItem(snooze)
+        let pause = NSMenuItem(title: L10n.t("PauseNotification"),
+                               action: nil, keyEquivalent: "")
+        pause.submenu = makePauseMenu()
+        mainMenu.addItem(pause)
 
-        menu.addItem(.separator())
+        mainMenu.addItem(.separator())
 
         let settings = NSMenuItem(title: L10n.t("MenuSettings"),
                                   action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
-        menu.addItem(settings)
+        mainMenu.addItem(settings)
 
         let quit = NSMenuItem(title: L10n.t("QuitApp"),
                               action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
-        menu.addItem(quit)
+        mainMenu.addItem(quit)
     }
 
-    private func makeSnoozeMenu() -> NSMenu {
+    private func makePauseMenu(showsTitle: Bool = false) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
+
+        if showsTitle {
+            let header = NSMenuItem(title: L10n.t("PauseNotification"),
+                                    action: nil, keyEquivalent: "")
+            header.isEnabled = false
+            menu.addItem(header)
+        }
 
         if let until = model.snoozeUntil, until > Date() {
             let paused = NSMenuItem(
@@ -163,6 +171,21 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
     private func timeString(_ date: Date) -> String {
         DateFormatter.localizedString(from: date, dateStyle: .none, timeStyle: .short)
+    }
+
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        let isRightClick = NSApp.currentEvent?.type == .rightMouseUp
+        let menu: NSMenu
+        if isRightClick {
+            populateMainMenu()
+            menu = mainMenu
+        } else {
+            menu = makePauseMenu(showsTitle: true)
+        }
+        guard let button = statusItem.button else { return }
+        button.highlight(true)
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        button.highlight(false)
     }
 
     @objc private func startBreak() {
