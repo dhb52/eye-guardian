@@ -72,11 +72,11 @@ struct SettingsCard<Content: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: Theme.settingsCardCorner)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(Theme.group)
         )
         .overlay(
             RoundedRectangle(cornerRadius: Theme.settingsCardCorner)
-                .strokeBorder(Color.primary.opacity(0.06))
+                .strokeBorder(Theme.hairline)
         )
     }
 }
@@ -84,7 +84,7 @@ struct SettingsCard<Content: View>: View {
 struct SettingsDivider: View {
     var body: some View {
         Rectangle()
-            .fill(Color.primary.opacity(0.07))
+            .fill(Theme.hairline)
             .frame(height: 1)
             .padding(.leading, 60)
     }
@@ -213,7 +213,7 @@ struct SettingsChoiceGrid<Value: Hashable>: View {
             VStack(spacing: 5) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(nsColor: .windowBackgroundColor))
+                        .fill(Theme.page)
                     choice.preview
                 }
                 .frame(width: itemWidth, height: previewHeight)
@@ -237,6 +237,8 @@ struct SettingsChoiceGrid<Value: Hashable>: View {
 }
 
 struct SettingsSidebarRow: View {
+    @Environment(\.controlActiveState) private var controlActiveState
+
     let icon: String
     let tint: Color
     let title: String
@@ -244,11 +246,13 @@ struct SettingsSidebarRow: View {
     var detail: String?
     let action: () -> Void
 
+    private var isEmphasized: Bool { isSelected && controlActiveState == .key }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 9) {
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? Color.white.opacity(0.22) : tint)
+                    .fill(isEmphasized ? Color.white.opacity(0.22) : tint)
                     .frame(width: 26, height: 26)
                     .overlay(
                         Image(systemName: icon)
@@ -258,11 +262,11 @@ struct SettingsSidebarRow: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
                         .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                        .foregroundStyle(isEmphasized ? Color.white : Color.primary)
                     if let detail {
                         Text(detail)
                             .font(.system(size: 10.5))
-                            .foregroundStyle(isSelected ? Color.white.opacity(0.8) : Color.secondary)
+                            .foregroundStyle(isEmphasized ? Color.white.opacity(0.8) : Color.secondary)
                     }
                 }
                 Spacer(minLength: 0)
@@ -272,7 +276,7 @@ struct SettingsSidebarRow: View {
             .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Theme.selection : Color.clear)
+                    .fill(isSelected ? SidebarSelection.fill(isEmphasized: isEmphasized) : Color.clear)
             )
         }
         .buttonStyle(.plain)
@@ -298,10 +302,10 @@ struct SettingsSidebar: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 12)
-        .padding(.top, 44)
+        .padding(.top, 12)
         .padding(.bottom, 16)
         .frame(width: Theme.settingsSidebarWidth)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background { SidebarMaterial().ignoresSafeArea() }
     }
 }

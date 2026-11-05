@@ -9,6 +9,12 @@ enum Theme {
     static let settingsSidebarWidth: CGFloat = 216
     static let settingsCardCorner: CGFloat = 12
 
+    /// Content surface behind the grouped cards.
+    static let page = Color(nsColor: .controlBackgroundColor)
+    /// Surface of a grouped card sitting on `page`.
+    static let group = Color(nsColor: .windowBackgroundColor)
+    static let hairline = Color(nsColor: .separatorColor)
+
     static var accentGradient: LinearGradient {
         LinearGradient(colors: [accent, Color(red: 1.0, green: 0.769, blue: 0.420)],
                        startPoint: .topLeading, endPoint: .bottomTrailing)
