@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct Card<Content: View>: View {
@@ -9,11 +10,11 @@ struct Card<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: Theme.cardCorner)
-                    .fill(Color(nsColor: .controlBackgroundColor))
+                    .fill(Theme.group)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.cardCorner)
-                    .strokeBorder(Color.primary.opacity(0.06))
+                    .strokeBorder(Theme.hairline)
             )
     }
 }
@@ -84,10 +85,14 @@ struct SectionTitle: View {
 }
 
 struct SidebarRow: View {
+    @Environment(\.controlActiveState) private var controlActiveState
+
     let title: String
     let systemImage: String
     let isSelected: Bool
     let action: () -> Void
+
+    private var isEmphasized: Bool { isSelected && controlActiveState == .key }
 
     var body: some View {
         Button(action: action) {
@@ -103,10 +108,30 @@ struct SidebarRow: View {
             .contentShape(Rectangle())
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? Theme.selection.opacity(0.15) : Color.clear)
+                    .fill(isSelected ? SidebarSelection.fill(isEmphasized: isEmphasized) : Color.clear)
             )
-            .foregroundStyle(isSelected ? Theme.selection : Color.primary)
+            .foregroundStyle(isEmphasized ? Color.white : Color.primary)
         }
         .buttonStyle(.plain)
     }
+}
+
+enum SidebarSelection {
+    static func fill(isEmphasized: Bool) -> Color {
+        Color(nsColor: isEmphasized ? .selectedContentBackgroundColor
+                                    : .unemphasizedSelectedContentBackgroundColor)
+    }
+}
+
+/// Translucent sidebar backdrop; owns the window-level vibrancy the system uses for sidebars.
+struct SidebarMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }

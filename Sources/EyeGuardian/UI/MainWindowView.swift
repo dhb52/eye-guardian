@@ -7,7 +7,6 @@ struct MainWindowView: View {
     var body: some View {
         HStack(spacing: 0) {
             SidebarView()
-            Divider()
             Group {
                 switch model.selectedSection {
                 case .today:
@@ -19,6 +18,7 @@ struct MainWindowView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background { Theme.page.ignoresSafeArea() }
         }
         .frame(minWidth: 780, minHeight: 520)
         .sheet(isPresented: $model.isHelpPresented) {
@@ -80,7 +80,7 @@ private struct SidebarView: View {
         }
         .padding(16)
         .frame(width: Theme.sidebarWidth)
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background { SidebarMaterial().ignoresSafeArea() }
     }
 
     private var fatigueCard: some View {
@@ -104,7 +104,7 @@ private struct SidebarView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(Color(nsColor: .controlBackgroundColor))
+                .fill(Theme.page)
         )
     }
 }

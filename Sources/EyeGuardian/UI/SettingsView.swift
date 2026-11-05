@@ -13,7 +13,7 @@ struct SettingsView: View {
             content
         }
         .frame(minWidth: 880, minHeight: 620)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background { Theme.page.ignoresSafeArea() }
         .alert(L10n.t("AppName"), isPresented: $local.showingAlert) {
             Button(L10n.t("OK")) {}
         } message: {

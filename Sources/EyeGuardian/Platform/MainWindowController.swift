@@ -12,6 +12,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         )
         super.init(window: window)
         window.title = L10n.t("AppName")
+        window.titlebarSeparatorStyle = .none
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.contentViewController = NSHostingController(
             rootView: MainWindowView().environmentObject(model)
         )
