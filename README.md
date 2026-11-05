@@ -27,7 +27,7 @@ The Command Line Tools keep the Swift Testing macro plugin outside the plugin se
 - **Screen Recording** — only needed if "Detect screen changes" is enabled; it improves accuracy while watching videos. A purple dot in the menu bar area is normal while the app captures thumbnails.
 - **Notifications** — requested on first launch for notification-style reminders.
 
-Builds are signed with a local self-signed identity at `~/Library/Keychains/EyeGuardian.keychain-db`, so Accessibility / Screen Recording grants persist across rebuilds. Delete that keychain to rotate the identity; re-grant permissions afterward.
+Builds are signed with a local self-signed identity at `~/Library/Keychains/EyeGuardian.keychain-db`, so Accessibility / Screen Recording grants persist across rebuilds. The build creates the identity on first use and marks its certificate trusted for code signing in your login keychain. Delete that keychain to rotate the identity; re-grant permissions afterward.
 
 ## Features
 

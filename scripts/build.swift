@@ -32,6 +32,8 @@ let signingIdentity = "EyeGuardian Local Signing"
 let signingPassword = "eyeguardian-local"
 let signingKeychain = URL(fileURLWithPath: NSHomeDirectory())
     .appendingPathComponent("Library/Keychains/EyeGuardian.keychain-db")
+let loginKeychain = URL(fileURLWithPath: NSHomeDirectory())
+    .appendingPathComponent("Library/Keychains/login.keychain-db")
 
 func path(_ components: String...) -> URL {
     components.reduce(root) { $0.appendingPathComponent($1) }
@@ -52,6 +54,8 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = fals
         process.standardOutput = pipe
     } else if silent {
         process.standardOutput = FileHandle.nullDevice
+    }
+    if silent {
         process.standardError = FileHandle.nullDevice
     }
     try process.run()
@@ -108,13 +112,51 @@ func generateIcons() throws {
     print("wrote \(icns.path)")
 }
 
+/// Returns true only when the keychain holds a usable code-signing identity; `security find-certificate`
+/// exits 0 even for a missing keychain, so read `find-identity` output instead.
+func hasSigningIdentity(in keychain: String) -> Bool {
+    guard FileManager.default.fileExists(atPath: keychain) else { return false }
+    guard (try? run("security", ["unlock-keychain", "-p", signingPassword, keychain], silent: true)) != nil else {
+        return false
+    }
+    guard let identities = try? run("security", ["find-identity", "-v", "-p", "codesigning", keychain],
+                                    captureOutput: true, silent: true) else {
+        return false
+    }
+    return identities.contains("\"\(signingIdentity)\"")
+}
+
+func userSearchList() -> [String] {
+    guard let output = try? run("security", ["list-keychains", "-d", "user"], captureOutput: true, silent: true) else {
+        return []
+    }
+    return output
+        .split(separator: "\n")
+        .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: " \t\"")) }
+        .filter { !$0.isEmpty }
+}
+
+/// codesign ignores `--keychain` when resolving an identity, so the keychain has to be in the search list
+/// while signing. Restore the previous list afterwards.
+@discardableResult
+func withSigningKeychain<Result>(_ keychain: String, _ body: () throws -> Result) rethrows -> Result {
+    let previous = userSearchList()
+    if !previous.isEmpty, !previous.contains(keychain) {
+        _ = try? run("security", ["list-keychains", "-d", "user", "-s"] + previous + [keychain], silent: true)
+        defer {
+            _ = try? run("security", ["list-keychains", "-d", "user", "-s"] + previous, silent: true)
+        }
+        return try body()
+    }
+    return try body()
+}
+
 /// Returns the identity name when a usable local signing keychain is present or can be created.
 func localSigningIdentity() -> String? {
     let fileManager = FileManager.default
     let keychain = signingKeychain.path
 
-    if (try? run("security", ["find-certificate", "-a", "-c", signingIdentity, keychain], silent: true)) != nil {
-        _ = try? run("security", ["unlock-keychain", "-p", signingPassword, keychain], silent: true)
+    if hasSigningIdentity(in: keychain) {
         return signingIdentity
     }
 
@@ -156,6 +198,16 @@ func localSigningIdentity() -> String? {
         _ = try? run("security", [
             "set-key-partition-list", "-S", "apple-tool:,apple:", "-s", "-k", signingPassword, keychain,
         ], silent: true)
+        // A self-signed certificate stays untrusted until it is marked trusted for code signing.
+        if (try? run("security", [
+            "add-trusted-cert", "-r", "trustRoot", "-p", "codeSign", "-k", loginKeychain.path, cert,
+        ], silent: true)) == nil {
+            warn("warning: could not trust the local signing certificate")
+        }
+        guard hasSigningIdentity(in: keychain) else {
+            warn("warning: imported signing identity is not usable")
+            return nil
+        }
         return signingIdentity
     } catch {
         warn("warning: local signing identity setup failed: \(error)")
@@ -166,12 +218,10 @@ func localSigningIdentity() -> String? {
 func buildApp() throws {
     let fileManager = FileManager.default
     let identity: String
-    var keychain: String?
     if let override = ProcessInfo.processInfo.environment["CODESIGN_ID"], !override.isEmpty {
         identity = override
     } else if let local = localSigningIdentity() {
         identity = local
-        keychain = signingKeychain.path
     } else {
         warn("warning: could not create a local signing identity; falling back to ad-hoc")
         identity = "-"
@@ -229,10 +279,14 @@ func buildApp() throws {
     )
 
     try run("xattr", ["-cr", app.path])
-    if let keychain {
-        try run("codesign", ["--force", "--keychain", keychain, "--sign", identity, app.path])
-    } else {
-        try run("codesign", ["--force", "--sign", identity, app.path])
+    do {
+        try withSigningKeychain(signingKeychain.path) {
+            try run("codesign", ["--force", "--keychain", signingKeychain.path, "--sign", identity, app.path])
+        }
+    } catch {
+        guard identity != "-" else { throw error }
+        warn("warning: signing with '\(identity)' failed; falling back to ad-hoc")
+        try run("codesign", ["--force", "--sign", "-", app.path])
     }
     print("Built \(app.path)")
 }

@@ -90,9 +90,8 @@ final class ScreenChangeDetector {
         let height = 20
         let bytesPerRow = width * 4
         var pixels = [UInt8](repeating: 0, count: bytesPerRow * height)
-        var grayscale: [UInt8]?
 
-        pixels.withUnsafeMutableBytes { buffer in
+        let drew: Bool = pixels.withUnsafeMutableBytes { (buffer: UnsafeMutableRawBufferPointer) -> Bool in
             guard let context = CGContext(data: buffer.baseAddress,
                                           width: width,
                                           height: height,
@@ -100,20 +99,25 @@ final class ScreenChangeDetector {
                                           bytesPerRow: bytesPerRow,
                                           space: CGColorSpaceCreateDeviceRGB(),
                                           bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
-                return
+                return false
             }
             context.interpolationQuality = .low
             context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-            var result = [UInt8](repeating: 0, count: width * height)
-            for index in 0..<(width * height) {
-                let red = Int(buffer[index * 4])
-                let green = Int(buffer[index * 4 + 1])
-                let blue = Int(buffer[index * 4 + 2])
-                result[index] = UInt8((red * 299 + green * 587 + blue * 114) / 1000)
-            }
-            grayscale = result
+            return true
         }
-        return grayscale
+        guard drew else { return nil }
+
+        let count = width * height
+        var result = [UInt8](repeating: 0, count: count)
+        for index in 0..<count {
+            let offset = index * 4
+            result[index] = Self.luma(pixels[offset], pixels[offset + 1], pixels[offset + 2])
+        }
+        return result
+    }
+
+    private static func luma(_ red: UInt8, _ green: UInt8, _ blue: UInt8) -> UInt8 {
+        let weighted = 299 * Int(red) + 587 * Int(green) + 114 * Int(blue)
+        return UInt8(weighted / 1000)
     }
 }
