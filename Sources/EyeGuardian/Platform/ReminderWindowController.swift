@@ -24,10 +24,19 @@ final class ReminderPanel: NSPanel {
 final class ReminderWindowController {
     private var panels: [ReminderPanel] = []
     private weak var previousApp: NSRunningApplication?
+    private var activeObserver: NSObjectProtocol?
 
     func show(session: BreakSessionModel, onSkip: @escaping () -> Void) {
         hide(restoreFocus: false)
         previousApp = NSWorkspace.shared.frontmostApplication
+
+        activeObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.bringPanelsForward()
+            }
+        }
 
         let escape: () -> Void = { [weak self, weak session] in
             guard let session else { return }
@@ -53,6 +62,11 @@ final class ReminderWindowController {
         }
         panels.removeAll()
 
+        if let activeObserver {
+            NotificationCenter.default.removeObserver(activeObserver)
+            self.activeObserver = nil
+        }
+
         if restoreFocus,
            let previousApp,
            previousApp.processIdentifier != ProcessInfo.processInfo.processIdentifier {
@@ -66,6 +80,12 @@ final class ReminderWindowController {
         panel.styleMask.remove(.nonactivatingPanel)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func bringPanelsForward() {
+        guard let first = panels.first else { return }
+        for panel in panels { panel.orderFrontRegardless() }
+        if !first.isKeyWindow { first.makeKey() }
     }
 
     private func presentFullScreen(session: BreakSessionModel,
@@ -83,6 +103,7 @@ final class ReminderWindowController {
             panel.backgroundColor = .black
             panel.hasShadow = false
             panel.isReleasedWhenClosed = false
+            panel.hidesOnDeactivate = false
             panel.onEscape = escape
             panel.contentViewController = NSHostingController(
                 rootView: FullScreenReminderView(session: session, onSkip: onSkip)

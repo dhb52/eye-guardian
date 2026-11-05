@@ -142,6 +142,7 @@ private struct ReminderContent: View {
 
             TextField(L10n.t("EnterAnswer"), text: $session.answer)
                 .textFieldStyle(.roundedBorder)
+                .foregroundStyle(Color(nsColor: .textColor))
                 .frame(width: compact ? 160 : 220)
                 .onSubmit {
                     if session.submitChallenge() {
@@ -166,6 +167,7 @@ private struct ReminderContent: View {
                 }
             }
             .buttonStyle(.bordered)
+            .foregroundStyle(Color(nsColor: .controlTextColor))
             .controlSize(compact ? .small : .regular)
         }
         .padding(12)
