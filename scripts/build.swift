@@ -43,6 +43,28 @@ func warn(_ message: String) {
     FileHandle.standardError.write(Data((message + "\n").utf8))
 }
 
+/// SwiftPM appends Xcode's `Developer/` layout to the selected developer directory, so a Command Line
+/// Tools-only install hands the linker `<CLT>/Developer/{Library/Frameworks,usr/lib}`, which does not
+/// exist. The same toolchain ships `libswiftCompatibilityPacks.a` without an x86_64 slice, which only
+/// matters below macOS 13. Both lines are toolchain noise; every other diagnostic, errors included,
+/// still reaches stderr.
+func isToolchainNoise(_ line: String) -> Bool {
+    guard line.contains("ld: warning: ") else { return false }
+    return line.hasSuffix("/Developer/Library/Frameworks' not found")
+        || line.hasSuffix("/Developer/usr/lib' not found")
+        || (line.contains("libswiftCompatibilityPacks.a") && line.contains("missing arch 'x86_64'"))
+}
+
+func emitDiagnostics(_ data: Data) {
+    let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .newlines)
+    guard !text.isEmpty else { return }
+    let kept = text
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .filter { !isToolchainNoise(String($0)) }
+    guard !kept.isEmpty else { return }
+    warn(kept.joined(separator: "\n"))
+}
+
 @discardableResult
 func run(_ executable: String, _ arguments: [String], captureOutput: Bool = false, silent: Bool = false) throws -> String {
     let process = Process()
@@ -50,6 +72,7 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = fals
     process.arguments = [executable] + arguments
     process.currentDirectoryURL = root
     let pipe = Pipe()
+    let errorPipe = Pipe()
     if captureOutput {
         process.standardOutput = pipe
     } else if silent {
@@ -57,13 +80,17 @@ func run(_ executable: String, _ arguments: [String], captureOutput: Bool = fals
     }
     if silent {
         process.standardError = FileHandle.nullDevice
+    } else {
+        process.standardError = errorPipe
     }
     try process.run()
     var data = Data()
     if captureOutput {
         data = pipe.fileHandleForReading.readDataToEndOfFile()
     }
+    let errors = silent ? Data() : errorPipe.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
+    emitDiagnostics(errors)
     guard process.terminationStatus == 0 else {
         throw BuildError.failed(executable: executable, arguments: arguments, status: process.terminationStatus)
     }
