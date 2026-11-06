@@ -8,12 +8,13 @@ struct FatigueEngine: Equatable {
     mutating func tick(deltaSeconds: Double,
                        screenActive: Bool,
                        resting: Bool,
+                       paused: Bool = false,
                        workMinutes: Int,
                        restMinutes: Int) {
         guard deltaSeconds > 0 else { return }
         if resting {
             fatigue = max(0, fatigue - deltaSeconds * Self.recoveryPerSecond(restMinutes))
-        } else if screenActive {
+        } else if screenActive && !paused {
             let rate = 100.0 / (Double(clampValue(workMinutes, 5, 180)) * 60.0)
             fatigue = min(100, fatigue + deltaSeconds * rate)
         }

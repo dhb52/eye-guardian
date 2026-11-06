@@ -180,6 +180,15 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minu
                 workMinutes: 40, restMinutes: 5)
     check("idle without resting holds fatigue", abs(engine.fatigue - 50) < 0.0001)
 
+    engine.setFatigue(50)
+    engine.tick(deltaSeconds: 600, screenActive: true, resting: false, paused: true,
+                workMinutes: 40, restMinutes: 5)
+    check("paused screen time holds fatigue", abs(engine.fatigue - 50) < 0.0001)
+
+    engine.tick(deltaSeconds: 60, screenActive: false, resting: true, paused: true,
+                workMinutes: 40, restMinutes: 5)
+    check("paused engine still recovers while resting", abs(engine.fatigue - 30) < 0.0001)
+
     engine.setFatigue(100)
     engine.tick(deltaSeconds: 60, screenActive: false, resting: true,
                 workMinutes: 40, restMinutes: 2)
@@ -396,6 +405,16 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minu
     let inBreak = scheduler.evaluate(now: start, fatigue: 100,
                                      config: popup, todayScreenMinutes: 0, inBreak: true)
     check("no reminder while resting", inBreak == .none)
+
+    let snoozer = BreakScheduler(calendar: utc)
+    let snoozeUntil = start.addingTimeInterval(30 * 60)
+    snoozer.snooze(until: snoozeUntil)
+    let duringSnooze = snoozer.evaluate(now: start, fatigue: 100,
+                                        config: popup, todayScreenMinutes: 0, inBreak: false)
+    check("snooze suppresses reminders", duringSnooze == .none)
+    let afterSnooze = snoozer.evaluate(now: snoozeUntil, fatigue: 100,
+                                       config: popup, todayScreenMinutes: 0, inBreak: false)
+    check("reminders resume when the snooze ends", afterSnooze == .preNotification(remainingSeconds: 60))
 
     var notificationConfig = BreakSchedulerConfig()
     notificationConfig.style = .notification

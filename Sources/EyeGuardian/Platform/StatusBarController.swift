@@ -9,6 +9,7 @@ final class StatusBarController: NSObject {
         let palette: RingPalette
         let thickness: RingThickness
         let dark: Bool
+        let paused: Bool
     }
 
     private let model: AppModel
@@ -50,12 +51,14 @@ final class StatusBarController: NSObject {
 
     func refresh() {
         let settings = model.settings
+        let paused = model.snoozeUntil.map { $0 > Date() } ?? false
         let state = IconState(percent: model.fatiguePercent,
                               points: settings.effectiveStatusIconSize,
                               style: settings.ringStyle,
                               palette: settings.ringPalette,
                               thickness: settings.ringThickness,
-                              dark: usesDarkMenuBar)
+                              dark: usesDarkMenuBar,
+                              paused: paused)
         if state != lastIconState {
             lastIconState = state
             statusItem.button?.image = StatusBarIconRenderer.image(
@@ -64,7 +67,8 @@ final class StatusBarController: NSObject {
                 style: state.style,
                 palette: state.palette,
                 thickness: state.thickness,
-                dark: state.dark
+                dark: state.dark,
+                paused: state.paused
             )
         }
         let parts = StatusBarTextFormatter.parts(fatiguePercent: model.fatiguePercent,

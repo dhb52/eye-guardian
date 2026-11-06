@@ -9,6 +9,7 @@ enum StatusBarIconRenderer {
         let thickness: RingThickness
         let dark: Bool
         let template: Bool
+        let paused: Bool
     }
 
     private static var cache: [Key: NSImage] = [:]
@@ -19,10 +20,12 @@ enum StatusBarIconRenderer {
 
     static func image(fatigue: Int, points: Int, style: RingStyle,
                       palette: RingPalette, thickness: RingThickness,
-                      dark: Bool, template: Bool = true) -> NSImage {
+                      dark: Bool, template: Bool = true,
+                      paused: Bool = false) -> NSImage {
         let percent = min(max(fatigue, 0), 100)
         let key = Key(percent: percent, points: points, style: style,
-                      palette: palette, thickness: thickness, dark: dark, template: template)
+                      palette: palette, thickness: thickness, dark: dark,
+                      template: template, paused: paused)
         if let cached = cache[key] {
             return cached
         }
@@ -44,7 +47,8 @@ enum StatusBarIconRenderer {
             palette: key.palette,
             thickness: key.thickness,
             dark: key.dark,
-            surface: .menuBar
+            surface: .menuBar,
+            paused: key.paused
         )
         let image = IconArtwork.image(points: side, scale: 2, look: look)
         image.isTemplate = key.template && key.palette == .monochrome

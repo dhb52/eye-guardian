@@ -7,15 +7,18 @@ enum DockIconRenderer {
         let palette: RingPalette
         let thickness: RingThickness
         let dark: Bool
+        let paused: Bool
     }
 
     private static var cachedKey: Key?
     private static var cachedImage: NSImage?
 
     static func image(fatigue: Int, style: RingStyle, palette: RingPalette,
-                      thickness: RingThickness, dark: Bool) -> NSImage {
+                      thickness: RingThickness, dark: Bool,
+                      paused: Bool = false) -> NSImage {
         let percent = min(max(fatigue, 0), 100)
-        let key = Key(percent: percent, style: style, palette: palette, thickness: thickness, dark: dark)
+        let key = Key(percent: percent, style: style, palette: palette,
+                      thickness: thickness, dark: dark, paused: paused)
         if key == cachedKey, let cachedImage {
             return cachedImage
         }
@@ -28,7 +31,8 @@ enum DockIconRenderer {
     private static func render(_ percent: Int, key: Key) -> NSImage {
         let look = IconArtwork.Look(fatigue: CGFloat(percent) / 100, compact: false,
                                     style: key.style, palette: key.palette,
-                                    thickness: key.thickness, dark: key.dark)
+                                    thickness: key.thickness, dark: key.dark,
+                                    paused: key.paused)
         return IconArtwork.image(points: 512, scale: 1, look: look)
     }
 }

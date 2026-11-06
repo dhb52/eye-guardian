@@ -83,6 +83,7 @@ final class AppModel: ObservableObject {
     private var activeObserver: NSObjectProtocol?
     private var appearanceObservation: NSKeyValueObservation?
     private var lastDockPercent = -1
+    private var lastDockPaused = false
     private var loginItemDesired: Bool?
     private var lastScreenDetectionActive = false
     private var lastKeyboardDetectionActive = false
@@ -266,11 +267,13 @@ final class AppModel: ObservableObject {
             smartMode: smart
         )
         let screenActive = !inBreak && using && !locked && !asleep
+        let snoozed = snoozeUntil.map { $0 > now } ?? false
 
         if !inBreak {
             engine.tick(deltaSeconds: dt,
                         screenActive: screenActive,
                         resting: resting,
+                        paused: snoozed,
                         workMinutes: timing.workMinutes,
                         restMinutes: timing.restMinutes)
         }
@@ -282,8 +285,6 @@ final class AppModel: ObservableObject {
         statusBar.refresh()
         if isScreenActive != screenActive { isScreenActive = screenActive }
         if isResting != resting { isResting = resting }
-
-        let snoozed = snoozeUntil.map { $0 > now } ?? false
         if isSnoozed != snoozed { isSnoozed = snoozed }
 
         let day = Calendar.current.startOfDay(for: now)
@@ -376,14 +377,17 @@ final class AppModel: ObservableObject {
     private func updateDockIcon(force: Bool = false) {
         guard settings.showDockIcon else { return }
         let percent = engine.percent
-        guard force || percent != lastDockPercent else { return }
+        let paused = snoozeUntil.map { $0 > Date() } ?? false
+        guard force || percent != lastDockPercent || paused != lastDockPaused else { return }
         lastDockPercent = percent
+        lastDockPaused = paused
         NSApp.applicationIconImage = DockIconRenderer.image(
             fatigue: percent,
             style: settings.ringStyle,
             palette: settings.ringPalette,
             thickness: settings.ringThickness,
-            dark: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            dark: NSApp.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua,
+            paused: paused
         )
     }
 
@@ -635,6 +639,8 @@ final class AppModel: ObservableObject {
         isSnoozed = true
         scheduler.snooze(until: until)
         UserDefaults.standard.set(until, forKey: Keys.snoozeUntil)
+        updateDockIcon(force: true)
+        statusBar.refresh()
     }
 
     func resumeReminders() {
@@ -642,6 +648,8 @@ final class AppModel: ObservableObject {
         isSnoozed = false
         scheduler.resume()
         UserDefaults.standard.removeObject(forKey: Keys.snoozeUntil)
+        updateDockIcon(force: true)
+        statusBar.refresh()
     }
 
     func showMainWindow() {

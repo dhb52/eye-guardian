@@ -22,6 +22,7 @@ enum IconArtwork {
         var dark: Bool = true
         var surface: Surface = .appIcon
         var plate: PlateStyle = .automatic
+        var paused: Bool = false
     }
 
     private struct Tone {
@@ -155,6 +156,9 @@ enum IconArtwork {
         let fatigue = min(max(look.fatigue, 0), 1)
         if look.surface == .menuBar {
             drawMenuBarGlyph(fatigue: fatigue, look: look)
+            if look.paused {
+                drawPauseBadge(look: look, tint: nil)
+            }
             return
         }
         let tint = look.plate == .white ? whiteTone() : tone(dark: look.dark)
@@ -191,6 +195,53 @@ enum IconArtwork {
             drawGapNumber(fatigue, color: numberColor)
         }
         context.restoreGraphicsState()
+
+        if look.paused {
+            drawPauseBadge(look: look, tint: tint)
+        }
+    }
+
+    /// A ⏸ badge a third of the canvas tall in the lower-right corner. The chip is
+    /// knocked out on the menu bar and painted with the plate colour on the app icon,
+    /// so the bars never merge with the ring underneath.
+    private static let pauseGlyphHeight: CGFloat = canvas / 3
+
+    private static func drawPauseBadge(look: Look,
+                                       tint: (plateTop: NSColor, plateBottom: NSColor,
+                                              ink: NSColor, pupil: NSColor,
+                                              rim: NSColor)?) {
+        let height = pauseGlyphHeight
+        let barWidth = height * 0.20
+        let gap = height * 0.17
+        let padding = height * 0.10
+        let width = barWidth * 2 + gap + padding * 2
+        // Keep the app icon's chip inside the plate's rounded corner; the menu bar
+        // glyph sits a little further from the button's right edge than its bottom.
+        let insetY = look.surface == .appIcon ? plateInset + 60 : canvas * 0.075
+        let insetX = look.surface == .appIcon ? insetY : canvas * 0.105
+        let chip = NSRect(x: canvas - insetX - width, y: insetY,
+                          width: width, height: height + padding * 2)
+        let chipPath = NSBezierPath(roundedRect: chip, xRadius: padding, yRadius: padding)
+
+        if let tint {
+            tint.pupil.setFill()
+            chipPath.fill()
+        } else {
+            guard let context = NSGraphicsContext.current else { return }
+            context.saveGraphicsState()
+            context.compositingOperation = .clear
+            chipPath.fill()
+            context.restoreGraphicsState()
+        }
+
+        let ink = tint?.ink ?? (look.dark ? NSColor.white : NSColor.black)
+        ink.setFill()
+        let left = chip.midX - gap / 2 - barWidth
+        for x in [left, chip.midX + gap / 2] {
+            NSBezierPath(roundedRect: NSRect(x: x, y: chip.minY + padding,
+                                             width: barWidth, height: height),
+                         xRadius: barWidth / 2, yRadius: barWidth / 2).fill()
+        }
     }
 
     private static let menuBarGlyphScale: CGFloat = 1.2
