@@ -6,16 +6,16 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
     init(model: AppModel) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         super.init(window: window)
         window.title = L10n.t("AppName")
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.titlebarSeparatorStyle = .none
         if #unavailable(macOS 26.0) {
-            window.styleMask.insert(.fullSizeContentView)
-            window.titlebarAppearsTransparent = true
-            window.titlebarSeparatorStyle = .none
             window.isOpaque = false
             window.backgroundColor = .clear
         }

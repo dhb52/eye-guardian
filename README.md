@@ -4,7 +4,7 @@ A native macOS break-reminder app built with Swift, SwiftUI and AppKit. It watch
 
 Requires macOS 13.0 or later. Universal binary (arm64 + x86_64).
 
-The windows split by release: macOS 26 and later keeps the opaque titled window with the system sidebar fill, because the system already draws that surface; earlier releases draw the sidebar with `NSVisualEffectView(.sidebar)` under a transparent titlebar, since the semantic fill turns grey there.
+Both windows are frameless: the content surfaces run to the top edge, the titlebar is transparent and the title is hidden, so only the three traffic lights float over the sidebar. The sidebar fill still splits by release — macOS 26 and later use the semantic fill (`Theme.sidebarFill`), since the system already draws that surface; earlier releases draw it with `NSVisualEffectView(.sidebar)` under a non-opaque window, because the semantic fill turns grey there.
 
 ## Build
 
