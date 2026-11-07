@@ -88,6 +88,10 @@ final class AppModel: ObservableObject {
     private var lastScreenDetectionActive = false
     private var lastKeyboardDetectionActive = false
 
+    private var isSnoozeActive: Bool {
+        snoozeUntil.map { $0 > Date() } ?? false
+    }
+
     private let hotKey = HotKeyManager()
     private(set) lazy var statusBar = StatusBarController(model: self)
 
@@ -285,7 +289,10 @@ final class AppModel: ObservableObject {
         statusBar.refresh()
         if isScreenActive != screenActive { isScreenActive = screenActive }
         if isResting != resting { isResting = resting }
-        if isSnoozed != snoozed { isSnoozed = snoozed }
+        if isSnoozed != snoozed {
+            isSnoozed = snoozed
+            applyScreenDetector()
+        }
 
         let day = Calendar.current.startOfDay(for: now)
         if day != currentDay {
@@ -402,6 +409,14 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func applyScreenDetector() {
+        if settings.effectiveDetectScreenChanges, ScreenChangeDetector.hasPermission, !isSnoozeActive {
+            screenDetector.start()
+        } else {
+            screenDetector.stop()
+        }
+    }
+
     private func configureDetectors(force: Bool) {
         let config = (mouse: settings.effectiveDetectMouse,
                       keyboard: settings.effectiveDetectKeyboard,
@@ -410,11 +425,7 @@ final class AppModel: ObservableObject {
             detectorConfig = config
             usageDetector.start(mouse: config.mouse, keyboard: config.keyboard)
         }
-        if config.screen, ScreenChangeDetector.hasPermission {
-            screenDetector.start()
-        } else {
-            screenDetector.stop()
-        }
+        applyScreenDetector()
         refreshPermissions()
     }
 
@@ -429,15 +440,7 @@ final class AppModel: ObservableObject {
         let screenTrusted = ScreenChangeDetector.hasPermission
         if screenTrusted != screenRecordingTrusted { screenRecordingTrusted = screenTrusted }
 
-        if settings.effectiveDetectScreenChanges {
-            if screenTrusted {
-                screenDetector.start()
-            } else {
-                screenDetector.stop()
-            }
-        } else {
-            screenDetector.stop()
-        }
+        applyScreenDetector()
 
         refreshNotificationAuthorization()
 
@@ -638,6 +641,7 @@ final class AppModel: ObservableObject {
         snoozeUntil = until
         isSnoozed = true
         scheduler.snooze(until: until)
+        applyScreenDetector()
         UserDefaults.standard.set(until, forKey: Keys.snoozeUntil)
         updateDockIcon(force: true)
         statusBar.refresh()
@@ -647,6 +651,7 @@ final class AppModel: ObservableObject {
         snoozeUntil = nil
         isSnoozed = false
         scheduler.resume()
+        applyScreenDetector()
         UserDefaults.standard.removeObject(forKey: Keys.snoozeUntil)
         updateDockIcon(force: true)
         statusBar.refresh()
