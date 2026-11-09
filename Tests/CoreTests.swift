@@ -51,6 +51,10 @@ private func makeDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minu
           decode("{\"language\":\"chinese\"}")?.language == .chinese)
     check("missing language follows the system",
           decode("{}")?.language == .system)
+    check("lock screen is off by default",
+          decode("{}")?.lockScreenAtBreakEnd == false)
+    check("lock screen decodes from storage",
+          decode("{\"lockScreenAtBreakEnd\":true}")?.lockScreenAtBreakEnd == true)
     check("unknown language follows the system",
           decode("{\"language\":\"klingon\"}")?.language == .system)
     check("legacy rule inherits the global repeat interval",

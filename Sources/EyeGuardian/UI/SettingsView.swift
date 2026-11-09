@@ -194,6 +194,8 @@ struct SettingsView: View {
                 SettingsDivider()
                 playSoundRow
                 SettingsDivider()
+                lockScreenRow
+                SettingsDivider()
                 skipButtonRow
                 SettingsDivider()
                 breakSkippingRow
@@ -233,6 +235,16 @@ struct SettingsView: View {
                     title: L10n.t("PlaySound"),
                     subtitle: L10n.t("PlaySoundHint")) {
             Toggle("", isOn: $model.settings.playSoundAtBreakEnd)
+                .labelsHidden()
+                .toggleStyle(.switch)
+        }
+    }
+
+    private var lockScreenRow: some View {
+        SettingsRow(icon: "lock.shield", tint: .indigo,
+                    title: L10n.t("LockScreenAtBreakEnd"),
+                    subtitle: L10n.t("LockScreenAtBreakEndHint")) {
+            Toggle("", isOn: $model.settings.lockScreenAtBreakEnd)
                 .labelsHidden()
                 .toggleStyle(.switch)
         }

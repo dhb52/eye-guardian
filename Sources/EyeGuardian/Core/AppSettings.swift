@@ -17,6 +17,7 @@ struct AppSettings: Codable, Equatable {
     var notificationIntervalMinutes: Int = 5
     var preReminderNotification: Bool = true
     var playSoundAtBreakEnd: Bool = true
+    var lockScreenAtBreakEnd: Bool = false
     var skipMode: SkipMode = .button
     var showSkipButton: Bool = true
     var showDockIcon: Bool = false
@@ -95,7 +96,7 @@ struct AppSettings: Codable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case fatigueThresholdMinutes, restMinutes, reminderStyle, notificationIntervalMinutes
-        case preReminderNotification, playSoundAtBreakEnd, skipMode
+        case preReminderNotification, playSoundAtBreakEnd, lockScreenAtBreakEnd, skipMode
         case showSkipButton, showDockIcon, showStatusBarIcon, statusShowFatiguePercent
         case statusShowScreenTimeHours, statusShowScreenTimeMinutes, statusShowReminderCount
         case ringStyle, ringPalette, ringThickness, statusIconSize, language
@@ -137,6 +138,7 @@ struct AppSettings: Codable, Equatable {
         notificationIntervalMinutes = (try? c.decodeIfPresent(Int.self, forKey: .notificationIntervalMinutes)) ?? d.notificationIntervalMinutes
         preReminderNotification = (try? c.decodeIfPresent(Bool.self, forKey: .preReminderNotification)) ?? d.preReminderNotification
         playSoundAtBreakEnd = (try? c.decodeIfPresent(Bool.self, forKey: .playSoundAtBreakEnd)) ?? d.playSoundAtBreakEnd
+        lockScreenAtBreakEnd = (try? c.decodeIfPresent(Bool.self, forKey: .lockScreenAtBreakEnd)) ?? d.lockScreenAtBreakEnd
         skipMode = (try? c.decodeIfPresent(SkipMode.self, forKey: .skipMode)) ?? d.skipMode
         showSkipButton = (try? c.decodeIfPresent(Bool.self, forKey: .showSkipButton)) ?? d.showSkipButton
         showDockIcon = (try? c.decodeIfPresent(Bool.self, forKey: .showDockIcon)) ?? d.showDockIcon

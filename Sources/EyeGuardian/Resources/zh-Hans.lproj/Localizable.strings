@@ -101,6 +101,7 @@
 "FullScreen" = "全屏弹窗";
 "PreReminder" = "弹窗前提早通知";
 "PlaySound" = "播放提示音";
+"LockScreenAtBreakEnd" = "休息结束后锁定屏幕";
 "ShowSkipButton" = "跳过按钮";
 "BreakSkipping" = "跳过休息";
 "SkipByButton" = "点击跳过按钮";
@@ -210,6 +211,7 @@
 "ReminderIntervalHint" = "继续使用电脑时提醒的重复间隔。";
 "PreReminderHint" = "弹窗出现前 1 分钟先发通知。";
 "PlaySoundHint" = "休息结束时播放提示音。";
+"LockScreenAtBreakEndHint" = "休息结束后进入系统锁屏，需要输入登录密码解锁。";
 "ShowSkipButtonHint" = "在休息弹窗中显示跳过按钮。";
 "BreakSkippingHint" = "跳过按钮的行为。";
 "ExtraReminderHint" = "按今日累计使用时长额外提醒。";

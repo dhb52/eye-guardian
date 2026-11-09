@@ -497,10 +497,13 @@ final class AppModel: ObservableObject {
         fatigue = engine.fatigue
         playSound()
         breakSession = nil
-        reminderWindows.hide()
+        reminderWindows.hide(restoreFocus: !settings.lockScreenAtBreakEnd)
         updateDockIcon(force: true)
         statusBar.refresh()
         refreshTodayStats()
+        if settings.lockScreenAtBreakEnd {
+            ScreenLocker.lock()
+        }
     }
 
     private func presentScheduledReminder(effective: EffectiveSettings) {

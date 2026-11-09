@@ -101,6 +101,7 @@
 "FullScreen" = "Full-screen popup";
 "PreReminder" = "Pre-break notification";
 "PlaySound" = "Play sound";
+"LockScreenAtBreakEnd" = "Lock screen when a break ends";
 "ShowSkipButton" = "Skip button";
 "BreakSkipping" = "Break skipping";
 "SkipByButton" = "Skip by clicking the skip button";
@@ -210,6 +211,7 @@
 "ReminderIntervalHint" = "How often the reminder repeats while you keep working.";
 "PreReminderHint" = "Shows a notification 1 minute before the break popup.";
 "PlaySoundHint" = "Plays a sound when a break ends.";
+"LockScreenAtBreakEndHint" = "Locks the screen when a break ends; sign in with your password to resume.";
 "ShowSkipButtonHint" = "Shows Skip in the break popup.";
 "BreakSkippingHint" = "What the Skip button does.";
 "ExtraReminderHint" = "Adds a reminder based on total screen time today.";

@@ -33,7 +33,7 @@ Builds are signed with a local self-signed identity at `~/Library/Keychains/EyeG
 
 ## Features
 
-Every feature is available without an account or purchase: notification, mini and full-screen reminder styles, custom work/rest durations, break-skipping rules, time-based break rules, popup customization, the extra screen-time reminder, and all analysis charts.
+Every feature is available without an account or purchase: notification, mini and full-screen reminder styles, custom work/rest durations, break-skipping rules, time-based break rules, popup customization, the extra screen-time reminder, optional lock screen when a break ends, and all analysis charts.
 
 ## Data
 
@@ -47,7 +47,7 @@ The settings window has eight sections: General, Status Bar, Reminders, Detectio
 
 - `Package.swift` — SwiftPM package: `EyeGuardianKit` library + `EyeGuardian` executable.
 - `Sources/EyeGuardian/Core` — settings, fatigue math, scheduling, rules, SQLite store, CSV (Foundation + SQLite only).
-- `Sources/EyeGuardian/Platform` — event monitoring, permissions, status bar, Dock icon, windows.
+- `Sources/EyeGuardian/Platform` — event monitoring, permissions, status bar, Dock icon, windows, screen lock.
 - `Sources/EyeGuardian/UI` — SwiftUI views.
 - `Sources/EyeGuardianApp` — the `@main` entry point.
 - `Tests` — Swift Testing suite for the Core layer.
