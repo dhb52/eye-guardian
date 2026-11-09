@@ -1,54 +1,120 @@
 # Eye Guardian
 
-A native macOS break-reminder app built with Swift, SwiftUI and AppKit. It watches mouse, trackpad, keyboard and (optionally) screen activity, raises a fatigue value while you work, and lowers it while you rest. When fatigue reaches 100%, it reminds you to take a break.
+Eye Guardian is a native macOS break-reminder app. It accumulates fatigue based on time spent using the computer and reminds you to rest when the fatigue level reaches a threshold; a completed break resets fatigue to zero. It is written in SwiftUI, AppKit and Swift Charts, supports macOS 13 and later, ships as a universal arm64 and x86_64 binary, and has no third-party dependencies.
 
-Requires macOS 13.0 or later. Universal binary (arm64 + x86_64).
+The app needs no account, and usage records stay on this Mac. The interface is available in English and Simplified Chinese.
 
-Both windows are frameless: the content surfaces run to the top edge, the titlebar is transparent and the title is hidden, so only the three traffic lights float over the sidebar. The sidebar fill still splits by release — macOS 26 and later use the semantic fill (`Theme.sidebarFill`), since the system already draws that surface; earlier releases draw it with `NSVisualEffectView(.sidebar)` under a non-opaque window, because the semantic fill turns grey there.
-
-## Build
-
-No Xcode required; only the Command Line Tools. The package layout is described by `Package.swift`; tests use Swift Testing, since the Command Line Tools ship no XCTest.
-
-```sh
-swift build  # compile the current architecture in debug
-make         # universal release build, assemble and ad-hoc sign the app
-make test    # build and run the Core tests via swift test
-make run     # build and open the app
-make dmg      # build and package a drag-to-Applications disk image
-make clean
-```
-
-The result is `build/Eye Guardian.app`.
-
-The Command Line Tools keep Swift Testing's macro plugin and `Testing.framework` outside the search paths SwiftPM passes, so `make test` adds `-plugin-path`, `-F` and an `-rpath` for `<toolchain>/Library/Developer/Frameworks`; a bare `swift test` fails with `no such module 'Testing'`. That framework's Foundation cross-import overlay is only a stub, so the same command turns cross-import overlays off — otherwise importing both `Foundation` and `Testing` fails with `no such module '_Testing_Foundation'`.
-
-## Permissions
-
-- **Accessibility** — needed for global keyboard detection. Grant it from System Settings → Privacy & Security → Accessibility, or from the in-app banner.
-- **Screen Recording** — only needed if "Detect screen changes" is enabled; it improves accuracy while watching videos. A purple dot in the menu bar area is normal while the app captures thumbnails.
-- **Notifications** — requested on first launch for notification-style reminders.
-
-Builds are signed with a local self-signed identity at `~/Library/Keychains/EyeGuardian.keychain-db`, so Accessibility / Screen Recording grants persist across rebuilds. The build creates the identity on first use and marks its certificate trusted for code signing in your login keychain. Delete that keychain to rotate the identity; re-grant permissions afterward.
+<p align="center"><img src="docs/screenshots/today.png" alt="Today" width="600"></p>
 
 ## Features
 
-Every feature is available without an account or purchase: notification, mini and full-screen reminder styles, custom work/rest durations, break-skipping rules, time-based break rules, popup customization, the extra screen-time reminder, optional lock screen when a break ends, and all analysis charts.
+### Fatigue
 
-## Data
+By default, 40 minutes of work raises fatigue to 100%, and a 5-minute break restores it completely. Both durations can be adjusted. A reminder appears when fatigue reaches 100%; if you do not rest, it reminds you again at the repeat interval.
 
-All data stays on this Mac in `~/Library/Application Support/EyeGuardian/events.sqlite3`. Use Settings → Data → Export… to export daily aggregates.
+Usage detection determines when fatigue rises:
 
-## Settings
+- Smart mode: mouse, keyboard or screen activity within 60 seconds counts as usage; 60 seconds without activity counts as rest.
+- Dumb mode: all unlocked time counts as usage.
+- Movie mode: ignores input detection and keeps counting while you watch videos.
 
-The settings window has eight sections: General, Status Bar, Reminders, Detection, Appearance, Permissions, Data and About. A live preview pinned at the top of Status Bar and Appearance reflects the real menu bar and Dock icon. Language can follow the system or be forced to English or 简体中文; About has Restore default settings, which keeps the chosen language and all usage data.
+Mouse and trackpad need no extra permission; the keyboard needs Accessibility; screen change detection needs Screen Recording. Lock screen and sleep always count as rest.
 
-## Layout
+### Reminder styles
 
-- `Package.swift` — SwiftPM package: `EyeGuardianKit` library + `EyeGuardian` executable.
-- `Sources/EyeGuardian/Core` — settings, fatigue math, scheduling, rules, SQLite store, CSV (Foundation + SQLite only).
-- `Sources/EyeGuardian/Platform` — event monitoring, permissions, status bar, Dock icon, windows, screen lock.
-- `Sources/EyeGuardian/UI` — SwiftUI views.
-- `Sources/EyeGuardianApp` — the `@main` entry point.
-- `Tests` — Swift Testing suite for the Core layer.
-- `scripts/build.swift` — SwiftPM universal release build, icon generation, bundle assembly, signing and disk-image packaging (`swift scripts/build.swift build|icons|dmg`).
+- Notification: appears in Notification Center and can start a break or skip directly.
+- Mini popup: docks in the top-right corner of the screen without covering it.
+- Full-screen popup: covers all screens. It stays until the countdown ends unless you skip.
+
+When a popup style is selected, a pre-break notification can arrive 1 minute before the reminder. The popup background can follow the system, light, dark, purple, or a custom image; the reminder text and whether to show today's screen time can also be changed. Settings can additionally remind you when today's accumulated screen time reaches a threshold, for example 12 hours.
+
+<p align="center"><img src="docs/screenshots/settings-reminders.png" alt="Reminder settings" width="600"></p>
+
+### Skipping and ending a break
+
+Break skipping has three settings:
+
+- Click the skip button to end the break immediately.
+- Solve a multiplication problem first.
+- No skip button.
+
+A sound plays when a break ends. With "Lock screen when a break ends" enabled, the system locks immediately.
+
+<p align="center"><img src="docs/screenshots/break-fullscreen.png" alt="Full-screen break reminder" width="600"></p>
+
+### Time-based rules
+
+The Rules page sets work, break and repeat intervals by time window. Time outside the rules uses the default durations; windows can cross midnight. Rules match in order, and the first enabled rule takes effect.
+
+<p align="center"><img src="docs/screenshots/rules.png" alt="Rules" width="600"></p>
+
+### Status icon and shortcuts
+
+The menu bar or Dock icon shows a fatigue progress ring. The ring style can be solid or dotted, grayscale or color, in three thicknesses, and the icon size can be set from 18 to 26 pt. The icon can show the fatigue percentage, today's screen time and today's reminder count; a pause mark appears while reminders are paused.
+
+Left-click the menu bar icon to open the pause menu for 30 minutes, 1 hour, 2 hours, 6 hours or until tomorrow; right-click to open the full menu. The ⌃⌥⌘B shortcut starts a break from any app.
+
+<p align="center"><img src="docs/screenshots/settings-appearance.png" alt="Appearance settings" width="600"></p>
+
+### Records and analysis
+
+The Today page shows the fatigue curve, today's screen time and reminder count. The Analysis page provides three charts: screen time, fatigue peak duration and break compliance rate. The range can be the last 7 days, 28 days, 90 days, 12 months or all time; the granularity can be daily, weekly or monthly.
+
+<p align="center"><img src="docs/screenshots/analysis.png" alt="Analysis" width="600"></p>
+
+Data can be exported as CSV, aggregated by day: screen minutes, fatigue peak minutes, reminders, completions and completion rate.
+
+## Install
+
+macOS 13 or later and the Swift 6 Command Line Tools are required; full Xcode is not.
+
+| Command | Purpose |
+| --- | --- |
+| `make` | Build the arm64 and x86_64 universal version, assemble and sign `build/Eye Guardian.app` |
+| `make run` | Build and open the app |
+| `make test` | Run the Core-layer tests |
+| `make dmg` | Create a disk image that can be dragged into Applications |
+| `make clean` | Remove build products |
+
+The first build creates a local code-signing certificate with `openssl`, imports it into `~/Library/Keychains/EyeGuardian.keychain-db` and marks it trusted. The signing identity stays the same, so Accessibility and Screen Recording grants remain valid after rebuilding. Deleting that keychain changes the identity and requires granting permissions again. Set the `CODESIGN_ID` environment variable to use a different signing identity.
+
+## Permissions
+
+- Accessibility: reads global keyboard input. Without it, only mouse and trackpad activity is counted.
+- Screen Recording: used only when "Detect screen changes" is enabled. Detection produces a 32×20 grayscale fingerprint that stays in memory.
+- Notifications: shows notification banners and pre-break reminders. Requested on first launch.
+
+Both System Settings and in-app prompts can open the relevant permission.
+
+## Usage
+
+The main window opens at launch. The language follows the system by default and can be fixed to English or Simplified Chinese in Settings → General; changes apply immediately. Launch at login is available.
+
+"Settings → Reminders" adjusts reminder style, pre-break notification, skip behavior, sound, screen lock and the extra reminder; "Settings → Detection" adjusts usage detection; "Settings → Status Bar" and "Settings → Appearance" adjust the icon and popups. The preview at the top of these pages updates as you change settings.
+
+## Data and privacy
+
+Usage records are stored in `~/Library/Application Support/EyeGuardian/events.sqlite3`. The database writes one record per minute containing the fatigue level and whether you were using the computer; reminder start and completion times are also recorded. The app does not upload this data.
+
+Screen change detection compares thumbnails in memory only and writes nothing to disk. It does not capture the screen when the feature is off.
+
+## Project structure
+
+| Path | Contents |
+| --- | --- |
+| `Sources/EyeGuardian/Core` | Settings, fatigue math, scheduling, rules, SQLite store, CSV export |
+| `Sources/EyeGuardian/Platform` | Event monitoring, permissions, status bar, Dock icon, windows, screen lock |
+| `Sources/EyeGuardian/UI` | SwiftUI views |
+| `Sources/EyeGuardianApp` | App entry point |
+| `Tests` | Core-layer tests |
+| `scripts/build.swift` | Universal build, icon generation, signing, disk image |
+
+## Development
+
+The Core layer does not depend on AppKit; tests use Swift Testing. `make test` adds the plugin and framework search paths for the Command Line Tools; running `swift test` directly may fail to find the `Testing` module.
+
+`swift build` compiles only the current architecture in debug; use `make` for a distributable app and disk image.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0); see [LICENSE](LICENSE) for the full text.

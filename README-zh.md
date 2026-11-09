@@ -4,7 +4,7 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 
 应用不需要账号，使用记录只保存在本机。界面支持 English 和简体中文。
 
-![今日页](docs/screenshots/today.png)
+<p align="center"><img src="docs/screenshots/today.png" alt="今日页" width="600"></p>
 
 ## 功能
 
@@ -28,7 +28,7 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 
 选择弹窗样式时，可以在提醒出现前 1 分钟收到预告通知。弹窗背景可以选择跟随系统、浅色、深色、紫色或自定义图片；提醒文案和是否显示今日使用时长也可以修改。设置中还可以按今日累计使用时长再提醒一次，例如达到 12 小时时通知。
 
-![提醒设置](docs/screenshots/settings-reminders.png)
+<p align="center"><img src="docs/screenshots/settings-reminders.png" alt="提醒设置" width="600"></p>
 
 ### 跳过与休息结束
 
@@ -40,13 +40,13 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 
 休息结束时会播放提示音。开启“休息结束后锁定屏幕”后，系统会立即进入锁屏。
 
-![全屏休息提醒](docs/screenshots/break-fullscreen.png)
+<p align="center"><img src="docs/screenshots/break-fullscreen.png" alt="全屏休息提醒" width="600"></p>
 
 ### 分时段规则
 
 规则页可以按时间段设置工作、休息和重复间隔。规则之外的时间使用默认时长；时间段支持跨午夜。规则按顺序匹配，第一条启用的规则生效。
 
-![规则页](docs/screenshots/rules.png)
+<p align="center"><img src="docs/screenshots/rules.png" alt="规则页" width="600"></p>
 
 ### 状态图标与快捷键
 
@@ -54,13 +54,13 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 
 左键点击菜单栏图标打开暂停菜单，可以暂停 30 分钟、1 小时、2 小时、6 小时或到明天；右键打开完整菜单。快捷键 ⌃⌥⌘B 可以在任意应用中开始休息。
 
-![外观设置](docs/screenshots/settings-appearance.png)
+<p align="center"><img src="docs/screenshots/settings-appearance.png" alt="外观设置" width="600"></p>
 
 ### 记录与分析
 
 今日页显示疲劳值曲线、今日使用时长和提醒次数。分析页提供三个图表：使用时长、疲劳值达到 100% 的累计时长和休息完成率。时间范围可选最近 7 天、28 天、90 天、12 个月或全部时间，粒度可选按天、按周、按月。
 
-![分析页](docs/screenshots/analysis.png)
+<p align="center"><img src="docs/screenshots/analysis.png" alt="分析页" width="600"></p>
 
 数据可以导出为 CSV，按天汇总使用分钟数、疲劳峰值分钟数、提醒次数、完成次数和完成率。
 
