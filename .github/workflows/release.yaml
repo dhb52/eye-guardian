@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Stamp version from tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${version}" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" Info.plist
+          plutil -lint Info.plist
+
+      - name: Prepare ad-hoc signing keychain
+        run: security create-keychain -p eyeguardian-local "$HOME/Library/Keychains/EyeGuardian.keychain-db" 2>/dev/null || true
+
+      - name: Build universal disk image
+        env:
+          CODESIGN_ID: "-"
+        run: make dmg
+
+      - name: Verify artifact
+        run: |
+          app="build/Eye Guardian.app"
+          archs="$(lipo -archs "$app/Contents/MacOS/EyeGuardian")"
+          echo "architectures: ${archs}"
+          printf '%s' "$archs" | grep -q arm64 || { echo "missing arm64 slice"; exit 1; }
+          printf '%s' "$archs" | grep -q x86_64 || { echo "missing x86_64 slice"; exit 1; }
+          codesign --verify --strict "$app"
+
+      - name: Rename disk image
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mv "build/Eye Guardian ${version}.dmg" "build/EyeGuardian-${version}.dmg"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" "build/EyeGuardian-${version}.dmg" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes "本项目采用 AGPL-3.0 许可证。磁盘映像未使用 Apple 开发者证书签名或公证，首次打开请在“应用程序”中右键选择“打开”，或在“系统设置 → 隐私与安全性”中允许。"
