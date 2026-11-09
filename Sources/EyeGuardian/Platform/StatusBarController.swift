@@ -187,11 +187,14 @@ final class StatusBarController: NSObject {
             menu = makePauseMenu(showsTitle: true)
         }
         guard let button = statusItem.button else { return }
-        button.highlight(true)
-        // The button shares its top edge with the screen, so anchoring any distance above y = 0 pushes
-        // the menu past the screen edge; macOS then clips the first item and adds a scroll chevron.
-        menu.popUp(positioning: nil, at: .zero, in: button)
-        button.highlight(false)
+        // Hand the menu to the status item instead of popping it up against the button. The button
+        // sits inside the menu bar band, and any anchor there is resolved against the screen edge
+        // rather than the visible frame: the menu covers the menu bar and its first row scrolls away
+        // behind a chevron. The button's top edge is only a couple of points from the boundary, so
+        // the failure comes and goes with the display's menu bar height.
+        statusItem.menu = menu
+        button.performClick(nil)
+        statusItem.menu = nil
     }
 
     @objc private func startBreak() {
