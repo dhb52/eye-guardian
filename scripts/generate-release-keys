@@ -1,0 +1,59 @@
+#!/bin/sh
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root"
+
+identity="EyeGuardian Release Signing"
+password="$(openssl rand -hex 16)"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+key="$work/key.pem"
+cert="$work/cert.pem"
+bundle="$work/identity.p12"
+
+if ! openssl req -x509 -newkey rsa:2048 -keyout "$key" -out "$cert" \
+        -days 3650 -nodes -subj "/CN=$identity" \
+        -addext "keyUsage=critical,digitalSignature" \
+        -addext "extendedKeyUsage=critical,codeSigning" 2>"$work/openssl.log"; then
+    cat "$work/openssl.log" >&2
+    exit 1
+fi
+
+if ! openssl pkcs12 -export -legacy -out "$bundle" -inkey "$key" \
+        -in "$cert" -passout "pass:$password" 2>/dev/null; then
+    openssl pkcs12 -export -out "$bundle" -inkey "$key" \
+        -in "$cert" -passout "pass:$password"
+fi
+
+cert_base64="$(base64 < "$bundle" | tr -d '\n')"
+key_output="$(swift scripts/update-key.swift generate)"
+private_key="$(printf '%s\n' "$key_output" | sed -n 's/^private=//p')"
+public_key="$(printf '%s\n' "$key_output" | sed -n 's/^public=//p')"
+
+if [ -z "$private_key" ] || [ -z "$public_key" ]; then
+    echo "failed to generate the Ed25519 key" >&2
+    exit 1
+fi
+
+if /usr/libexec/PlistBuddy -c "Print :UpdatePublicKey" Info.plist >/dev/null 2>&1; then
+    /usr/libexec/PlistBuddy -c "Set :UpdatePublicKey $public_key" Info.plist
+else
+    /usr/libexec/PlistBuddy -c "Add :UpdatePublicKey string $public_key" Info.plist
+fi
+
+plutil -lint Info.plist
+
+cat <<EOF
+Wrote UpdatePublicKey to Info.plist. Commit that change.
+
+Signing identity: $identity
+
+Add these GitHub Actions secrets:
+CODESIGN_CERT_P12=$cert_base64
+CODESIGN_CERT_PASSWORD=$password
+UPDATE_SIGNING_KEY=$private_key
+
+Keep the private key and the p12 outside the repository.
+EOF

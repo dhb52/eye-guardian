@@ -41,5 +41,11 @@
 	<false/>
 	<key>NSSupportsSuddenTermination</key>
 	<false/>
+	<key>UpdateEnabled</key>
+	<false/>
+	<key>UpdatePublicKey</key>
+	<string>KEsN2gc9XsYumSVJ0Dn4Zkww/0pnD8aqMvzOPps1UP4=</string>
+	<key>UpdateRepository</key>
+	<string>dhb52/eye-guardian</string>
 </dict>
 </plist>

@@ -54,6 +54,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var todayFatigueSamples: [FatigueSample] = []
     @Published var selectedSection: Section = .today
     @Published var isHelpPresented = false
+    @Published var updateSheetPresented = false
+    @Published private(set) var updateState: UpdateState = .idle
 
 
     @Published private(set) var accessibilityTrusted = false
@@ -62,6 +64,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var loginItemError: String?
 
     let store: EventStore
+    let analysis = AnalysisState()
+    private let isExistingInstall: Bool
     let systemState = SystemStateObserver()
     let usageDetector = UsageDetector()
     let screenDetector = ScreenChangeDetector()
@@ -87,6 +91,7 @@ final class AppModel: ObservableObject {
     private var loginItemDesired: Bool?
     private var lastScreenDetectionActive = false
     private var lastKeyboardDetectionActive = false
+    private var updateCancellable: AnyCancellable?
 
     private var isSnoozeActive: Bool {
         snoozeUntil.map { $0 > Date() } ?? false
@@ -97,10 +102,12 @@ final class AppModel: ObservableObject {
 
     private(set) lazy var mainWindowController = MainWindowController(model: self)
     private(set) lazy var settingsWindowController = SettingsWindowController(model: self)
+    lazy var updateService: UpdateService = makeUpdateService()
 
     private enum Keys {
         static let settings = "settings.v1"
         static let snoozeUntil = "snooze.until"
+        static let updatePermissionPrompted = "update.permissionPrompted"
     }
 
     private init() {
@@ -111,6 +118,9 @@ final class AppModel: ObservableObject {
         } else {
             settings = .default
         }
+        let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        let dataDirectory = applicationSupport?.appendingPathComponent("EyeGuardian", isDirectory: true)
+        isExistingInstall = dataDirectory.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
         store = AppModel.makeStore()
 
         if let until = defaults.object(forKey: Keys.snoozeUntil) as? Date {
@@ -174,6 +184,7 @@ final class AppModel: ObservableObject {
         notifications.onStartBreak = { [weak self] in self?.startBreakNow() }
         notifications.onSkip = { [weak self] in self?.skipCurrentReminder() }
         notifications.onOpenApp = { [weak self] in self?.showMainWindow() }
+        notifications.onOpenUpdate = { [weak self] in self?.showUpdateSheet(checkIfNeeded: false) }
         notifications.start { [weak self] status in
             self?.notificationAuthorization = status
         }
@@ -192,6 +203,8 @@ final class AppModel: ObservableObject {
         statusBar.refresh()
         updateDockIcon(force: true)
         applyLaunchAtLogin()
+        startUpdateService()
+        promptForPermissionsAfterUpdateIfNeeded()
     }
 
     func stop() {
@@ -204,6 +217,9 @@ final class AppModel: ObservableObject {
         systemState.stop()
         usageDetector.stop()
         screenDetector.stop()
+        updateCancellable?.cancel()
+        updateCancellable = nil
+        updateService.stop()
         permissionGuide.hide()
         reminderWindows.hide(restoreFocus: false)
         breakSession = nil
@@ -370,6 +386,7 @@ final class AppModel: ObservableObject {
         statusBar.refresh()
         updateDockIcon(force: true)
         applyLaunchAtLogin()
+        updateService.setAutoCheckEnabled(settings.autoCheckUpdates)
     }
 
     private func applyActivationPolicy() {
@@ -486,6 +503,7 @@ final class AppModel: ObservableObject {
         guard breakSession != nil else { return }
         breakSession = nil
         reminderWindows.hide()
+        updateService.breakDidEnd()
     }
 
     private func finishBreak() {
@@ -501,6 +519,7 @@ final class AppModel: ObservableObject {
         updateDockIcon(force: true)
         statusBar.refresh()
         refreshTodayStats()
+        updateService.breakDidEnd()
         if settings.lockScreenAtBreakEnd {
             ScreenLocker.lock()
         }
@@ -666,6 +685,95 @@ final class AppModel: ObservableObject {
 
     func showSettings() {
         settingsWindowController.show()
+    }
+
+    func showUpdateSheet(checkIfNeeded: Bool = true) {
+        if checkIfNeeded {
+            switch updateState {
+            case .idle, .upToDate, .failed:
+                updateService.check(manual: true)
+            default:
+                break
+            }
+        }
+        updateService.clearPendingNotification()
+        updateSheetPresented = true
+        showSettings()
+    }
+
+    var isUpdateFeatureVisible: Bool {
+        updateService.configuration.enabled
+    }
+
+    var isUpdateSupported: Bool {
+        updateService.configuration.isSupported
+    }
+
+    var canCheckForUpdates: Bool {
+        !updateState.isBusy
+    }
+
+    var updateMenuTitle: String {
+        switch updateState {
+        case .available(let release):
+            return L10n.f("UpdateMenuInstallFormat", release.version.description)
+        case .downloaded(let release, _):
+            return L10n.f("UpdateMenuOpenFormat", release.version.description)
+        case .downloading:
+            return L10n.t("UpdateMenuDownloading")
+        case .checking:
+            return L10n.t("UpdateMenuChecking")
+        case .opening:
+            return L10n.t("UpdateMenuOpening")
+        default:
+            return L10n.t("CheckForUpdates")
+        }
+    }
+
+    private func startUpdateService() {
+        updateCancellable = updateService.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                Task { @MainActor in
+                    self?.updateState = state
+                }
+            }
+        updateService.start(autoCheckEnabled: settings.autoCheckUpdates)
+    }
+
+    private func makeUpdateService() -> UpdateService {
+        let configuration = UpdateConfiguration.live()
+        return UpdateService(
+            configuration: configuration,
+            installer: UpdateInstaller(configuration: configuration),
+            api: GitHubUpdateAPI(configuration: configuration),
+            downloader: URLSessionDownloader(),
+            notificationsAllowed: { [weak self] in self?.notificationsAvailable ?? false },
+            isBreakActive: { [weak self] in self?.breakSession != nil },
+            notify: { [weak self] release in
+                self?.notifications.postUpdateAvailable(version: release.version.description)
+            },
+            readyToQuit: { [weak self] in
+                self?.quitAfterUpdate()
+            }
+        )
+    }
+
+    private func quitAfterUpdate() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func promptForPermissionsAfterUpdateIfNeeded() {
+        guard isExistingInstall else { return }
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Keys.updatePermissionPrompted) else { return }
+        let needsAccessibility = settings.effectiveDetectKeyboard && !accessibilityTrusted
+        let needsScreen = settings.effectiveDetectScreenChanges && !screenRecordingTrusted
+        guard needsAccessibility || needsScreen else { return }
+        defaults.set(true, forKey: Keys.updatePermissionPrompted)
+        openPermissionSettings(needsAccessibility ? .accessibility : .screenRecording)
     }
 
     @discardableResult

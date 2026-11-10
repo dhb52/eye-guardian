@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,19 +20,48 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Validate tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "invalid release tag: $GITHUB_REF_NAME"
+            exit 1
+          fi
+
       - name: Stamp version from tag
         run: |
           version="${GITHUB_REF_NAME#v}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${version}" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" Info.plist
+          /usr/libexec/PlistBuddy -c "Set :UpdateEnabled true" Info.plist
           plutil -lint Info.plist
 
-      - name: Prepare ad-hoc signing keychain
-        run: security create-keychain -p eyeguardian-local "$HOME/Library/Keychains/EyeGuardian.keychain-db" 2>/dev/null || true
+      - name: Import release signing certificate
+        env:
+          CODESIGN_CERT_P12: ${{ secrets.CODESIGN_CERT_P12 }}
+          CODESIGN_CERT_PASSWORD: ${{ secrets.CODESIGN_CERT_PASSWORD }}
+        run: |
+          if [ -z "${CODESIGN_CERT_P12}" ] || [ -z "${CODESIGN_CERT_PASSWORD}" ]; then
+            echo "missing CODESIGN_CERT_P12 or CODESIGN_CERT_PASSWORD"
+            exit 1
+          fi
+          keychain="$HOME/Library/Keychains/EyeGuardian.keychain-db"
+          security delete-keychain "$keychain" 2>/dev/null || true
+          security create-keychain -p eyeguardian-local "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p eyeguardian-local "$keychain"
+          printf '%s' "$CODESIGN_CERT_P12" | base64 -D > "$RUNNER_TEMP/release.p12"
+          security import "$RUNNER_TEMP/release.p12" -k "$keychain" \
+            -P "$CODESIGN_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k eyeguardian-local "$keychain"
+          rm -f "$RUNNER_TEMP/release.p12"
+
+      - name: Run tests
+        run: make test
 
       - name: Build universal disk image
         env:
-          CODESIGN_ID: "-"
+          CODESIGN_ID: "EyeGuardian Release Signing"
         run: make dmg
 
       - name: Verify artifact
@@ -42,18 +72,40 @@ jobs:
           printf '%s' "$archs" | grep -q arm64 || { echo "missing arm64 slice"; exit 1; }
           printf '%s' "$archs" | grep -q x86_64 || { echo "missing x86_64 slice"; exit 1; }
           codesign --verify --strict "$app"
+          codesign -dvv "$app" 2>&1 | grep -q "Authority=EyeGuardian Release Signing" \
+            || { echo "unexpected signing identity"; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :UpdateEnabled" "$app/Contents/Info.plist" | grep -q true \
+            || { echo "updates are disabled"; exit 1; }
+          public_key="$(/usr/libexec/PlistBuddy -c "Print :UpdatePublicKey" "$app/Contents/Info.plist")"
+          [ -n "$public_key" ] || { echo "missing UpdatePublicKey"; exit 1; }
 
       - name: Rename disk image
         run: |
           version="${GITHUB_REF_NAME#v}"
           mv "build/Eye Guardian ${version}.dmg" "build/EyeGuardian-${version}.dmg"
 
+      - name: Sign disk image
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          if [ -z "${UPDATE_SIGNING_KEY}" ]; then
+            echo "missing UPDATE_SIGNING_KEY"
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          dmg="build/EyeGuardian-${version}.dmg"
+          swift scripts/update-key.swift sign "$dmg" > "${dmg}.sig"
+          public_key="$(/usr/libexec/PlistBuddy -c "Print :UpdatePublicKey" Info.plist)"
+          swift scripts/update-key.swift verify "$dmg" "$(cat "${dmg}.sig")" "$public_key"
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" "build/EyeGuardian-${version}.dmg" \
+          gh release create "$GITHUB_REF_NAME" \
+            "build/EyeGuardian-${version}.dmg" \
+            "build/EyeGuardian-${version}.dmg.sig" \
             --verify-tag \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \

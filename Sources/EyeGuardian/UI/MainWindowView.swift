@@ -12,7 +12,7 @@ struct MainWindowView: View {
                 case .today:
                     TodayView()
                 case .analysis:
-                    AnalysisView()
+                    AnalysisView(state: model.analysis)
                 case .rules:
                     RulesView()
                 }

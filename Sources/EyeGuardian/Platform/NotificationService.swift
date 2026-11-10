@@ -3,13 +3,16 @@ import UserNotifications
 
 @MainActor
 final class NotificationService: NSObject {
-    static let categoryIdentifier = "breakCategory"
-    static let startAction = "startBreak"
-    static let skipAction = "skipBreak"
+    nonisolated static let categoryIdentifier = "breakCategory"
+    nonisolated static let updateCategoryIdentifier = "updateCategory"
+    nonisolated static let startAction = "startBreak"
+    nonisolated static let skipAction = "skipBreak"
+    nonisolated static let showUpdateAction = "showUpdate"
 
     var onStartBreak: (() -> Void)?
     var onSkip: (() -> Void)?
     var onOpenApp: (() -> Void)?
+    var onOpenUpdate: (() -> Void)?
 
     func start(onAuthorization: @escaping (UNAuthorizationStatus) -> Void) {
         let center = UNUserNotificationCenter.current()
@@ -25,7 +28,14 @@ final class NotificationService: NSObject {
                                               actions: [start, skip],
                                               intentIdentifiers: [],
                                               options: [])
-        center.setNotificationCategories([category])
+        let showUpdate = UNNotificationAction(identifier: Self.showUpdateAction,
+                                              title: L10n.t("UpdateShowAction"),
+                                              options: [.foreground])
+        let updateCategory = UNNotificationCategory(identifier: Self.updateCategoryIdentifier,
+                                                    actions: [showUpdate],
+                                                    intentIdentifiers: [],
+                                                    options: [])
+        center.setNotificationCategories([category, updateCategory])
         requestAuthorization(completion: onAuthorization)
     }
 
@@ -71,6 +81,17 @@ final class NotificationService: NSObject {
              category: false)
     }
 
+    func postUpdateAvailable(version: String) {
+        let content = UNMutableNotificationContent()
+        content.title = L10n.t("UpdateNotificationTitle")
+        content.body = L10n.f("UpdateNotificationBodyFormat", version)
+        content.categoryIdentifier = Self.updateCategoryIdentifier
+        let request = UNNotificationRequest(identifier: "update-\(version)",
+                                            content: content,
+                                            trigger: nil)
+        UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+    }
+
     private func post(title: String, body: String, category: Bool) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -90,14 +111,23 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                             willPresent notification: UNNotification,
                                             withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound])
+        if notification.request.content.categoryIdentifier == Self.updateCategoryIdentifier {
+            completionHandler([.banner])
+        } else {
+            completionHandler([.banner, .sound])
+        }
     }
 
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
                                             didReceive response: UNNotificationResponse,
                                             withCompletionHandler completionHandler: @escaping () -> Void) {
         let action = response.actionIdentifier
+        let category = response.notification.request.content.categoryIdentifier
         Task { @MainActor in
+            if category == Self.updateCategoryIdentifier || action == Self.showUpdateAction {
+                self.onOpenUpdate?()
+                return
+            }
             switch action {
             case Self.startAction:
                 self.onStartBreak?()

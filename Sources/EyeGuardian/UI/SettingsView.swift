@@ -5,7 +5,11 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.colorScheme) private var colorScheme
-    @StateObject private var local = SettingsLocalState()
+    @ObservedObject var local: SettingsLocalState
+
+    init(local: SettingsLocalState) {
+        self.local = local
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -21,6 +25,14 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $local.showingHelp) {
             HelpView().environmentObject(model)
+        }
+        .sheet(isPresented: $model.updateSheetPresented) {
+            UpdateSheet().environmentObject(model)
+        }
+        .onChange(of: model.updateSheetPresented) { presented in
+            if presented {
+                local.selectedTab = .about
+            }
         }
     }
 
@@ -606,6 +618,7 @@ struct SettingsView: View {
         SettingsPane {
             VStack(alignment: .leading, spacing: 22) {
                 appIdentityCard
+                UpdateCard()
                 resourcesCard
                 defaultsCard
             }
@@ -820,7 +833,7 @@ enum SettingsTab: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-private final class SettingsLocalState: ObservableObject {
+final class SettingsLocalState: ObservableObject {
     @Published var selectedTab: SettingsTab = .general
     @Published var previewDarkOverride: Bool?
     @Published var showingHelp = false

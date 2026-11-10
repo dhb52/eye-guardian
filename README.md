@@ -78,6 +78,16 @@ macOS 13 or later and the Swift 6 Command Line Tools are required; full Xcode is
 
 The first build creates a local code-signing certificate with `openssl`, imports it into `~/Library/Keychains/EyeGuardian.keychain-db` and marks it trusted. The signing identity stays the same, so Accessibility and Screen Recording grants remain valid after rebuilding. Deleting that keychain changes the identity and requires granting permissions again. Set the `CODESIGN_ID` environment variable to use a different signing identity.
 
+## Updates
+
+Release builds check GitHub Releases once per day and on the first launch after that interval. Manual checks are available from the app menu, the status bar menu, and Settings → About. The update card shows the release notes and downloads the disk image only after confirmation.
+
+The downloaded DMG is verified against the Ed25519 signature published with the release and the GitHub asset digest, then opened in Finder. Drag Eye Guardian into Applications, replace the old copy, and reopen it. The app does not replace itself or request administrator credentials.
+
+Local builds set `UpdateEnabled` to false in `Info.plist`, so they never check for updates. The Release workflow sets it to true and signs the app with a stable certificate.
+
+The first release that contains the updater must be installed manually. Moving from an ad-hoc signed build to the release certificate resets Accessibility and Screen Recording permissions once; the app shows the existing permission guide when that happens.
+
 ## Permissions
 
 - Accessibility: reads global keyboard input. Without it, only mouse and trackpad activity is counted.
@@ -105,9 +115,13 @@ Screen change detection compares thumbnails in memory only and writes nothing to
 | `Sources/EyeGuardian/Core` | Settings, fatigue math, scheduling, rules, SQLite store, CSV export |
 | `Sources/EyeGuardian/Platform` | Event monitoring, permissions, status bar, Dock icon, windows, screen lock |
 | `Sources/EyeGuardian/UI` | SwiftUI views |
+| `Sources/EyeGuardian/Update` | Version checks, GitHub release parsing, signature verification, DMG mounting |
 | `Sources/EyeGuardianApp` | App entry point |
 | `Tests` | Core-layer tests |
 | `scripts/build.swift` | Universal build, icon generation, signing, disk image |
+| `scripts/generate-release-keys` | One-time release certificate and Ed25519 key setup |
+| `scripts/update-key.swift` | Ed25519 key generation and DMG signing |
+| `scripts/update-smoke.sh` | Local download, signature, and DMG mount smoke test |
 
 ## Development
 

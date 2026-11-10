@@ -3,7 +3,7 @@ import SwiftUI
 
 struct AnalysisView: View {
     @EnvironmentObject private var model: AppModel
-    @StateObject private var state = AnalysisState()
+    @ObservedObject var state: AnalysisState
 
     var body: some View {
         ScrollView {
@@ -71,7 +71,7 @@ struct AnalysisView: View {
 }
 
 @MainActor
-private final class AnalysisState: ObservableObject {
+final class AnalysisState: ObservableObject {
     @Published var range: ChartRange = .last7Days
     @Published var granularity: ChartGranularity = .daily
     @Published private(set) var data = AnalysisData.empty

@@ -4,6 +4,7 @@ import SwiftUI
 @MainActor
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var languageObserver: NSObjectProtocol?
+    private let local = SettingsLocalState()
 
     init(model: AppModel) {
         let contentSize = NSSize(width: 880, height: 620)
@@ -23,7 +24,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             window.backgroundColor = .clear
         }
         window.contentViewController = NSHostingController(
-            rootView: SettingsView().environmentObject(model)
+            rootView: SettingsView(local: local).environmentObject(model)
         )
         window.setContentSize(contentSize)
         window.isReleasedWhenClosed = false

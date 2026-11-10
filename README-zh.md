@@ -78,6 +78,16 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 
 第一次构建会用 `openssl` 创建本地代码签名证书，导入 `~/Library/Keychains/EyeGuardian.keychain-db`，并设为信任。签名身份不变，重新构建后辅助功能和屏幕录制授权继续有效。删除该钥匙串会更换身份，需要重新授权。设置 `CODESIGN_ID` 环境变量可以使用其他签名身份。
 
+## 更新
+
+发布版本会每天检查一次 GitHub Releases，并在距离上次检查超过一天后的首次启动时检查。应用菜单、状态栏菜单和“设置 → 关于”都提供手动检查。更新卡片展示更新说明，用户确认后才下载磁盘映像。
+
+下载的 DMG 会同时校验随发布提供的 Ed25519 签名和 GitHub 资产 digest，然后才在访达中打开。将 Eye Guardian 拖入“应用程序”替换旧版本并重新打开；应用不会自行替换，也不会请求管理员凭据。
+
+本地构建在 `Info.plist` 中把 `UpdateEnabled` 设为 false，因此不会检查更新。Release workflow 会把它设为 true，并使用固定证书签名。
+
+第一个包含更新器的版本需要手动安装。从 ad-hoc 签名切换到发布证书会使辅助功能和屏幕录制权限重置一次；应用会在此时复用现有权限引导。
+
 ## 权限
 
 - 辅助功能：读取全局键盘输入。未授权时只统计鼠标和触摸板。
@@ -105,9 +115,13 @@ Eye Guardian 是一个 macOS 原生休息提醒应用。它根据使用电脑的
 | `Sources/EyeGuardian/Core` | 设置、疲劳计算、调度、规则、SQLite 存储、CSV 导出 |
 | `Sources/EyeGuardian/Platform` | 事件监测、权限、状态栏、程序坞图标、窗口、锁屏 |
 | `Sources/EyeGuardian/UI` | SwiftUI 界面 |
+| `Sources/EyeGuardian/Update` | 版本检查、GitHub release 解析、签名校验、DMG 挂载 |
 | `Sources/EyeGuardianApp` | 程序入口 |
 | `Tests` | Core 层测试 |
 | `scripts/build.swift` | 通用构建、图标生成、签名、磁盘映像 |
+| `scripts/generate-release-keys` | 一次性生成发布证书与 Ed25519 密钥 |
+| `scripts/update-key.swift` | Ed25519 密钥生成与 DMG 签名 |
+| `scripts/update-smoke.sh` | 本地下载、签名与 DMG 挂载冒烟测试 |
 
 ## 开发
 

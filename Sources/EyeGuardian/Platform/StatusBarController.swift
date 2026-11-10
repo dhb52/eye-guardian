@@ -125,6 +125,14 @@ final class StatusBarController: NSObject {
         settings.target = self
         mainMenu.addItem(settings)
 
+        if model.isUpdateFeatureVisible {
+            let updates = NSMenuItem(title: model.updateMenuTitle,
+                                     action: #selector(checkForUpdates), keyEquivalent: "")
+            updates.target = self
+            updates.isEnabled = model.canCheckForUpdates
+            mainMenu.addItem(updates)
+        }
+
         let quit = NSMenuItem(title: L10n.t("QuitApp"),
                               action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
@@ -207,6 +215,10 @@ final class StatusBarController: NSObject {
 
     @objc private func openSettings() {
         model.showSettings()
+    }
+
+    @objc private func checkForUpdates() {
+        model.showUpdateSheet(checkIfNeeded: true)
     }
 
     @objc private func resumeReminders() {

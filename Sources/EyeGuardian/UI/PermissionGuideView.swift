@@ -11,7 +11,7 @@ struct PermissionGuideView: View {
     let onDragEnded: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @StateObject private var animation = GuideAnimation()
+    @ObservedObject private var animation = GuideAnimation()
 
     var body: some View {
         HStack(spacing: 16) {

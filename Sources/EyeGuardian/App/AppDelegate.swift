@@ -1,12 +1,23 @@
 import AppKit
+import Combine
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var languageObserver: NSObjectProtocol?
+    private var updateMenuCancellable: AnyCancellable?
+    private var lastUpdateMenuTitle = ""
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let model = AppModel.shared
         buildMainMenu()
+        lastUpdateMenuTitle = model.updateMenuTitle
+        updateMenuCancellable = model.$updateState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                Task { @MainActor in
+                    self?.refreshUpdateMenuItem()
+                }
+            }
         languageObserver = NotificationCenter.default.addObserver(
             forName: .eyeGuardianLanguageDidChange,
             object: nil, queue: .main
@@ -21,6 +32,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        updateMenuCancellable?.cancel()
+        updateMenuCancellable = nil
         if let languageObserver {
             NotificationCenter.default.removeObserver(languageObserver)
             self.languageObserver = nil
@@ -47,6 +60,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appMenu.addItem(withTitle: L10n.t("MenuAbout"),
                         action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
                         keyEquivalent: "")
+        if AppModel.shared.isUpdateFeatureVisible {
+            let updates = appMenu.addItem(withTitle: AppModel.shared.updateMenuTitle,
+                                          action: #selector(checkForUpdates),
+                                          keyEquivalent: "")
+            updates.target = self
+            updates.isEnabled = AppModel.shared.canCheckForUpdates
+        }
         appMenu.addItem(.separator())
         let settingsItem = appMenu.addItem(withTitle: L10n.t("MenuSettings"),
                                            action: #selector(showSettings),
@@ -102,6 +122,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showSettings() {
         AppModel.shared.showSettings()
+    }
+
+    @objc private func checkForUpdates() {
+        AppModel.shared.showUpdateSheet(checkIfNeeded: true)
+    }
+
+    private func refreshUpdateMenuItem() {
+        let title = AppModel.shared.updateMenuTitle
+        guard title != lastUpdateMenuTitle else { return }
+        lastUpdateMenuTitle = title
+        buildMainMenu()
     }
 
     @objc private func showMainWindow() {

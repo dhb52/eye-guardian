@@ -34,6 +34,7 @@ struct AppSettings: Codable, Equatable {
     var statusIconSize: Int = 24
     var language: AppLanguage = .system
     var launchAtLogin: Bool = false
+    var autoCheckUpdates: Bool = true
     var usageMode: UsageMode = .smart
     var detectMouse: Bool = true
     var detectKeyboard: Bool = true
@@ -100,7 +101,7 @@ struct AppSettings: Codable, Equatable {
         case showSkipButton, showDockIcon, showStatusBarIcon, statusShowFatiguePercent
         case statusShowScreenTimeHours, statusShowScreenTimeMinutes, statusShowReminderCount
         case ringStyle, ringPalette, ringThickness, statusIconSize, language
-        case launchAtLogin, usageMode, detectMouse, detectKeyboard, detectScreenChanges
+        case launchAtLogin, autoCheckUpdates, usageMode, detectMouse, detectKeyboard, detectScreenChanges
         case movieMode, extraReminderEnabled, extraReminderHours, popupBackground
         case popupImagePath, popupText, showScreenTimeOnPopup, rules
     }
@@ -153,6 +154,7 @@ struct AppSettings: Codable, Equatable {
         statusIconSize = AppSettings.decodeStatusIconSize(from: c) ?? d.statusIconSize
         language = (try? c.decodeIfPresent(AppLanguage.self, forKey: .language)) ?? d.language
         launchAtLogin = (try? c.decodeIfPresent(Bool.self, forKey: .launchAtLogin)) ?? d.launchAtLogin
+        autoCheckUpdates = (try? c.decodeIfPresent(Bool.self, forKey: .autoCheckUpdates)) ?? d.autoCheckUpdates
         usageMode = (try? c.decodeIfPresent(UsageMode.self, forKey: .usageMode)) ?? d.usageMode
         detectMouse = (try? c.decodeIfPresent(Bool.self, forKey: .detectMouse)) ?? d.detectMouse
         detectKeyboard = (try? c.decodeIfPresent(Bool.self, forKey: .detectKeyboard)) ?? d.detectKeyboard
