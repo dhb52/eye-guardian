@@ -98,15 +98,30 @@ jobs:
           public_key="$(/usr/libexec/PlistBuddy -c "Print :UpdatePublicKey" Info.plist)"
           swift scripts/update-key.swift verify "$dmg" "$(cat "${dmg}.sig")" "$public_key"
 
-      - name: Publish release
+      - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
-            "build/EyeGuardian-${version}.dmg" \
-            "build/EyeGuardian-${version}.dmg.sig" \
-            --verify-tag \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            --notes "本项目采用 AGPL-3.0 许可证。磁盘映像未使用 Apple 开发者证书签名或公证，首次打开请在“应用程序”中右键选择“打开”，或在“系统设置 → 隐私与安全性”中允许。"
+          tag="$GITHUB_REF_NAME"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if [ "$(gh release view "$tag" --json isDraft --jq .isDraft)" = "true" ]; then
+              gh release upload "$tag" \
+                "build/EyeGuardian-${version}.dmg" \
+                "build/EyeGuardian-${version}.dmg.sig" --clobber
+            else
+              echo "release ${tag} is already published; leaving it unchanged"
+            fi
+          else
+            gh release create "$tag" \
+              "build/EyeGuardian-${version}.dmg" \
+              "build/EyeGuardian-${version}.dmg.sig" \
+              --draft \
+              --generate-notes \
+              --title "$tag" \
+              --verify-tag
+          fi
+          {
+            echo "Draft release ${tag} is ready."
+            echo "Run \`./scripts/publish-release-notes ${tag}\` to prepare the prompt and publish it with the Chinese summary."
+          } >> "$GITHUB_STEP_SUMMARY"

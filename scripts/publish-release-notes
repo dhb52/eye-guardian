@@ -1,0 +1,74 @@
+#!/bin/sh
+set -euo pipefail
+
+root="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$root"
+
+usage() {
+    echo "usage: scripts/publish-release-notes <tag> [summary-file]" >&2
+    echo "  without summary-file: writes build/release-notes-<tag>-prompt.md and exits 1" >&2
+    echo "  with summary-file:    composes the final body and publishes the draft release" >&2
+    exit 1
+}
+
+tag="${1:-}"
+[ -n "$tag" ] || usage
+printf '%s' "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "invalid tag: $tag" >&2; exit 1; }
+
+is_draft="$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)" \
+    || { echo "release $tag not found" >&2; exit 1; }
+[ "$is_draft" = "true" ] || { echo "release $tag is not a draft; nothing to publish" >&2; exit 1; }
+
+mkdir -p build
+body_file="build/release-notes-${tag}-input.md"
+prompt_file="build/release-notes-${tag}-prompt.md"
+final_file="build/release-notes-${tag}-final.md"
+summary_file="${2:-}"
+
+gh release view "$tag" --json body --jq .body > "$body_file"
+
+cat > "$prompt_file" <<'PROMPT'
+你是 Eye Guardian（macOS 护眼休息提醒应用）的发布说明撰写者。请把下面的 GitHub 自动生成发布说明改写成中文发布说明，面向最终用户。
+
+要求：
+- 只保留用户可见的功能、修复和行为变化；忽略 chore、docs、test、CI、重构、依赖升级等内部提交。
+- 不要编造输入中没有的内容。
+- 使用 Markdown；按「更新」「修复」分组；每条一行，简洁具体。
+- 不要输出 "Full Changelog"、贡献者名单或安装说明；这些由发布脚本追加。
+- 只输出正文，不要前后解释。
+
+输入：
+PROMPT
+cat "$body_file" >> "$prompt_file"
+
+if [ -z "$summary_file" ]; then
+    echo "wrote $prompt_file" >&2
+    echo "run the LLM with that prompt, save the output to build/release-notes-${tag}-summary.md, then run:" >&2
+    echo "  scripts/publish-release-notes $tag build/release-notes-${tag}-summary.md" >&2
+    exit 1
+fi
+
+[ -s "$summary_file" ] || { echo "summary file is empty: $summary_file" >&2; exit 1; }
+
+changelog="$(grep -E '^\*\*Full Changelog\*\*' "$body_file" | head -1 || true)"
+if [ -z "$changelog" ]; then
+    previous="$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)"
+    repository="$(gh repo view --json nameWithOwner --jq .nameWithOwner)"
+    if [ -n "$previous" ]; then
+        changelog="**Full Changelog**: https://github.com/${repository}/compare/${previous}...${tag}"
+    fi
+fi
+
+{
+    cat "$summary_file"
+    printf '\n\n---\n\n'
+    cat .github/release-note-footer.md
+    if [ -n "$changelog" ]; then
+        printf '\n\n%s\n' "$changelog"
+    else
+        printf '\n'
+    fi
+} > "$final_file"
+
+gh release edit "$tag" --notes-file "$final_file" --draft=false --latest
+gh release view "$tag" --json url --jq '"published: " + .url'
