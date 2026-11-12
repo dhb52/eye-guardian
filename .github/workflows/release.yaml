@@ -27,11 +27,14 @@ jobs:
             echo "invalid release tag: $GITHUB_REF_NAME"
             exit 1
           fi
+          plist_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)"
+          if [ "$plist_version" != "$version" ]; then
+            echo "Info.plist version (${plist_version}) does not match tag (${version})"
+            exit 1
+          fi
 
-      - name: Stamp version from tag
+      - name: Stamp build number
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${version}" Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${GITHUB_RUN_NUMBER}" Info.plist
           /usr/libexec/PlistBuddy -c "Set :UpdateEnabled true" Info.plist
           plutil -lint Info.plist
@@ -78,6 +81,9 @@ jobs:
             || { echo "updates are disabled"; exit 1; }
           public_key="$(/usr/libexec/PlistBuddy -c "Print :UpdatePublicKey" "$app/Contents/Info.plist")"
           [ -n "$public_key" ] || { echo "missing UpdatePublicKey"; exit 1; }
+          expected_version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$app/Contents/Info.plist" \
+            | grep -qx "$expected_version" || { echo "app version does not match Info.plist"; exit 1; }
 
       - name: Rename disk image
         run: |
