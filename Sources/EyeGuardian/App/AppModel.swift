@@ -760,7 +760,11 @@ final class AppModel: ObservableObject {
     }
 
     private func quitAfterUpdate() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        // NSApp.terminate does nothing while a sheet is attached, and the update sheet is on
+        // screen whenever the installer opens. Dismiss it first, then quit on the next main-queue
+        // turn so Finder can replace the bundle in Applications.
+        updateSheetPresented = false
+        DispatchQueue.main.async {
             NSApp.terminate(nil)
         }
     }

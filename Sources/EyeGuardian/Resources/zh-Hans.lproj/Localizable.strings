@@ -276,7 +276,7 @@
 "UpdateRetry" = "重试";
 "UpdateClose" = "关闭";
 "UpdateDownloadContinuesHint" = "下载会在后台继续。";
-"UpdateInstallSteps" = "将 Eye Guardian 拖入“应用程序”替换旧版本，然后重新打开。";
+"UpdateInstallSteps" = "打开磁盘映像时 Eye Guardian 会自行退出，以便在访达中覆盖旧版本。将 Eye Guardian 拖入“应用程序”替换旧版本，然后重新打开。";
 "UpdateBreakConfirmTitle" = "正在休息，仍要退出？";
 "UpdateBreakConfirmMessage" = "打开安装包会退出 Eye Guardian，并中断当前休息。";
 "UpdateBreakConfirmAction" = "打开并退出";

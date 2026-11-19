@@ -82,7 +82,7 @@ The first build creates a local code-signing certificate with `openssl`, imports
 
 Release builds check GitHub Releases once per day and on the first launch after that interval. Manual checks are available from the app menu, the status bar menu, and Settings → About. The update card shows the release notes and downloads the disk image only after confirmation.
 
-The downloaded DMG is verified against the Ed25519 signature published with the release and the GitHub asset digest, then opened in Finder. Drag Eye Guardian into Applications, replace the old copy, and reopen it. The app does not replace itself or request administrator credentials.
+The downloaded DMG is verified against the Ed25519 signature published with the release and the GitHub asset digest, then opened in Finder, and the app quits so Finder can replace the bundle. Drag Eye Guardian into Applications, replace the old copy, and reopen it. The app does not replace itself or request administrator credentials.
 
 Local builds set `UpdateEnabled` to false in `Info.plist`, so they never check for updates. The Release workflow sets it to true and signs the app with a stable certificate.
 

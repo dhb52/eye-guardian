@@ -276,7 +276,7 @@
 "UpdateRetry" = "Retry";
 "UpdateClose" = "Close";
 "UpdateDownloadContinuesHint" = "The download continues in the background.";
-"UpdateInstallSteps" = "Drag Eye Guardian into Applications, replace the old version, then reopen it.";
+"UpdateInstallSteps" = "Opening the disk image quits Eye Guardian so Finder can replace it. Drag it into Applications, replace the old version, then reopen it.";
 "UpdateBreakConfirmTitle" = "Quit During a Break?";
 "UpdateBreakConfirmMessage" = "Opening the installer quits Eye Guardian and interrupts the current break.";
 "UpdateBreakConfirmAction" = "Open and Quit";
